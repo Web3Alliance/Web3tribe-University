@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, Send, Search, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -41,7 +41,7 @@ interface Conversation {
   unread_count: number
 }
 
-export default function MessagesPage() {
+function MessagesContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const selectedUserId = searchParams.get('user')
@@ -81,7 +81,6 @@ export default function MessagesPage() {
     try {
       const supabase = createClient()
       
-      // Get all messages involving the user
       const { data: allMessages, error } = await supabase
         .from('private_messages')
         .select(`
@@ -99,7 +98,6 @@ export default function MessagesPage() {
 
       if (error) throw error
 
-      // Group by conversation partner
       const convMap = new Map<string, Conversation>()
 
       allMessages.forEach((msg: any) => {
@@ -137,7 +135,6 @@ export default function MessagesPage() {
     try {
       const supabase = createClient()
 
-      // Get user info
       const { data: userData } = await supabase
         .from('users')
         .select('id, full_name, profile_picture_url')
@@ -146,7 +143,6 @@ export default function MessagesPage() {
 
       setSelectedUser(userData)
 
-      // Get messages
       const { data, error } = await supabase
         .from('private_messages')
         .select(`
@@ -164,7 +160,6 @@ export default function MessagesPage() {
 
       setMessages(data || [])
 
-      // Mark messages as read
       await supabase
         .from('private_messages')
         .update({ is_read: true })
@@ -201,7 +196,6 @@ export default function MessagesPage() {
       const users = data?.map(f => f.following) || []
       setFollowingUsers(users)
     } catch (error) {
-      // If table doesn't exist, set empty
       setFollowingUsers([])
     }
   }
@@ -241,7 +235,6 @@ export default function MessagesPage() {
   const sendMessage = async () => {
     if (!newMessage.trim() || !user || !selectedUserId) return
 
-    // Check balance
     if (!profile || profile.w3tr_balance < 1) {
       toast({
         title: "Insufficient Balance",
@@ -442,7 +435,6 @@ export default function MessagesPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b">
         <div className="flex items-center gap-3 px-4 h-14 max-w-lg mx-auto">
           <Button
@@ -465,7 +457,6 @@ export default function MessagesPage() {
         </div>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 max-w-lg mx-auto w-full space-y-3">
         {messages.map(msg => (
           <div
@@ -488,7 +479,6 @@ export default function MessagesPage() {
         ))}
       </div>
 
-      {/* Input */}
       <div className="sticky bottom-0 bg-background border-t p-4 max-w-lg mx-auto w-full">
         <div className="flex gap-2">
           <Input
@@ -507,5 +497,20 @@ export default function MessagesPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <MessagesContent />
+    </Suspense>
   )
 }
