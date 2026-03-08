@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://www.tribe.theweb3alliance.org/sitemap.xml
+
+# Web3Tribe University
+# Repository: https://github.com/Web3Alliance/Web3tribe-University
+# Developer: @Skiibiidarsh
+# Website: https://www.tribe.theweb3alliance.org/

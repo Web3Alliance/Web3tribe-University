@@ -1,0 +1,55 @@
+{
+  "name": "Web3Tribe University",
+  "description": "Web3Tribe University is a next-generation digital learning platform dedicated to equipping people with practical, future-ready skills for the Web3 and digital economy. Learn and earn W3TR tokens.",
+  "repository": "https://github.com/Web3Alliance/Web3tribe-University",
+  "website": "https://www.tribe.theweb3alliance.org/",
+  "logo": "https://www.tribe.theweb3alliance.org/logo.png",
+  "keywords": [
+    "web3",
+    "education",
+    "blockchain",
+    "learning",
+    "tokens",
+    "w3tr",
+    "nft",
+    "certificates",
+    "pi-network",
+    "defi"
+  ],
+  "author": {
+    "name": "Skiibiidarsh",
+    "email": "Official@theweb3alliance.org",
+    "url": "https://github.com/Dinfadashe"
+  },
+  "contributors": [
+    {
+      "name": "Web3Alliance",
+      "url": "https://github.com/Web3Alliance"
+    }
+  ],
+  "license": "MIT",
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "features": {
+    "authentication": true,
+    "database": "supabase",
+    "blockchain": "pi-network",
+    "tokens": "W3TR",
+    "nft_certificates": true,
+    "payment_integration": true,
+    "real_time_chat": true
+  },
+  "social": {
+    "github": "https://github.com/Web3Alliance/Web3tribe-University",
+    "website": "https://www.tribe.theweb3alliance.org/"
+  }
+}

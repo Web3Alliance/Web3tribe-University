@@ -1,0 +1,16 @@
+{
+  "name": "Web3Tribe University",
+  "description": "Learn Web3 and earn W3TR tokens",
+  "version": "1.0.0",
+  "developer": {
+    "name": "Skiibiidarsh",
+    "url": "https://github.com/Skiibiidarsh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Web3Alliance/Web3tribe-University.git"
+  },
+  "website": "https://www.tribe.theweb3alliance.org/",
+  "publisher": "Web3Alliance",
+  "category": "Education"
+}

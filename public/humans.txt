@@ -1,0 +1,17 @@
+/* TEAM */
+Developer: Skiibiidarsh
+GitHub: https://github.com/Skiibiidarsh
+Organization: Web3Alliance
+
+/* SITE */
+Standards: HTML5, CSS3, JavaScript
+Components: Next.js, React, Supabase
+Software: VS Code, App Studio
+
+/* PROJECT */
+Name: Web3Tribe University
+Description: Learn & Earn Web3 Education Platform
+Repository: https://github.com/Web3Alliance/Web3tribe-University
+Website: https://www.tribe.theweb3alliance.org/
+Version: 1.0.0
+Last update: 2026/01/24

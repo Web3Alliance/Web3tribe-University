@@ -1,0 +1,23 @@
+{
+  "name": "Web3Tribe University",
+  "description": "Learn Web3 and earn W3TR tokens - A mobile-first learning management system that rewards users with tokens for completing educational modules.",
+  "version": "1.0.0",
+  "icon": "/icon.png",
+  "homepage": "https://www.tribe.theweb3alliance.org/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Web3Alliance/Web3tribe-University.git"
+  },
+  "developer": {
+    "name": "Skiibiidarsh",
+    "url": "https://github.com/Skiibiidarsh",
+    "contact": "https://github.com/Skiibiidarsh"
+  },
+  "publisher": "Web3Alliance",
+  "website": "https://www.tribe.theweb3alliance.org/",
+  "support_url": "https://github.com/Web3Alliance/Web3tribe-University/issues",
+  "category": "Education",
+  "tags": ["education", "web3", "blockchain", "learning", "tokens", "nft"],
+  "permissions": ["username"],
+  "sandbox": true
+}
