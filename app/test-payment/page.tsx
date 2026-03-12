@@ -24,7 +24,16 @@ export default function TestPaymentPage() {
     try {
       const auth = await (window as any).Pi.authenticate(
         ["payments", "username"],
-        (payment: any) => console.log("Incomplete payment", payment)
+        async (payment: any) => {
+          await fetch("/api/pi/complete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              paymentId: payment.identifier,
+              txid: payment.transaction?.txid
+            })
+          })
+        }
       )
 
       setMessage(`Authenticated as: ${auth.user.username}`)
