@@ -36,10 +36,19 @@ export default function TestPaymentPage() {
           metadata: { test: true }
         },
         {
-          onReadyForServerApproval: (paymentId: string) => {
-            setMessage(`Payment ready: ${paymentId}`)
+          onReadyForServerApproval: async (paymentId: string) => {
+            setMessage(`Approving payment...`)
+            // Call your approval API
+            const res = await fetch("/api/pi/approve", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ paymentId })
+            })
+            const data = await res.json()
+            setMessage(`Payment approved!`)
+            console.log("Approval response", data)
           },
-          onReadyForServerCompletion: (paymentId: string, txid: string) => {
+          onReadyForServerCompletion: async (paymentId: string, txid: string) => {
             setMessage(`Payment complete! TxID: ${txid}`)
           },
           onCancel: () => setMessage("Payment cancelled"),
@@ -59,7 +68,7 @@ export default function TestPaymentPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            This is a test page for Pi Network payments. Open inside Pi Browser to test.
+            Open inside Pi Browser to test.
           </p>
           <Button onClick={handlePiPayment} className="w-full">
             Pay 1 Pi (Test)
