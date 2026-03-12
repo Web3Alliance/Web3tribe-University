@@ -8,5 +8,6 @@
   NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtYnhjYnBuc2NkcnpsZm1pbXlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzMzU1MzgsImV4cCI6MjA4NDkxMTUzOH0.XWkMMwNS9Mw2wX1tIqNWbl91ngPz6B1SasEHkS8yULI"
   NEXT_PUBLIC_SITE_URL = "https://web3tribeuniversity.netlify.app"
   NEXT_PUBLIC_PI_URL = "https://web3tribeuni2700.pinet.com"
+  PI_API_KEY = "nsxhoshgir6sqc2hp5oax85dyo3vf72u4umyaevbwjnvlbyeynkq6ye08pyyxnqe"
 [[plugins]]
   package = "@netlify/plugin-nextjs"
