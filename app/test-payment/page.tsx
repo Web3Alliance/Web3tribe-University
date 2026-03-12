@@ -38,7 +38,6 @@ export default function TestPaymentPage() {
         {
           onReadyForServerApproval: async (paymentId: string) => {
             setMessage(`Approving payment...`)
-            // Call your approval API
             const res = await fetch("/api/pi/approve", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -49,7 +48,15 @@ export default function TestPaymentPage() {
             console.log("Approval response", data)
           },
           onReadyForServerCompletion: async (paymentId: string, txid: string) => {
+            setMessage(`Completing payment...`)
+            const res = await fetch("/api/pi/complete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ paymentId, txid })
+            })
+            const data = await res.json()
             setMessage(`Payment complete! TxID: ${txid}`)
+            console.log("Completion response", data)
           },
           onCancel: () => setMessage("Payment cancelled"),
           onError: (error: any) => setMessage(`Error: ${error.message}`)
