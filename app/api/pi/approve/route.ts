@@ -3,6 +3,9 @@ import { NextResponse } from "next/server"
 export async function POST(request: Request) {
   const { paymentId } = await request.json()
 
+  console.log("Approving payment:", paymentId)
+  console.log("API Key exists:", !!process.env.PI_API_KEY)
+
   try {
     const response = await fetch(
       `https://api.minepi.com/v2/payments/${paymentId}/approve`,
@@ -16,8 +19,19 @@ export async function POST(request: Request) {
     )
 
     const data = await response.json()
+    console.log("Pi API response:", data)
+
+    if (!response.ok) {
+      return NextResponse.json({ 
+        error: "Pi API error", 
+        details: data,
+        status: response.status 
+      }, { status: response.status })
+    }
+
     return NextResponse.json(data)
-  } catch (error) {
-    return NextResponse.json({ error: "Approval failed" }, { status: 500 })
+  } catch (error: any) {
+    console.log("Approval error:", error.message)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
