@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
+import { sendNotification } from "@/lib/notifications"
 
 interface UserProfile {
   id: string
@@ -232,6 +233,16 @@ export default function CommunityPage() {
       if (error) throw error
       const post = forumPosts.find(p => p.id === postId) || followingPosts.find(p => p.id === postId)
       await supabase.from('forum_posts').update({ comments_count: (post?.comments_count || 0) + 1 }).eq('id', postId)
+      // Send notification to post owner
+      if (post && post.user.id !== user.id) {
+        await sendNotification(
+          post.user.id,
+          user.id,
+          'comment',
+          `${profile?.full_name} commented on your post`,
+          postId
+        )
+      }
       setNewComments(prev => ({ ...prev, [postId]: '' }))
       await fetchComments(postId)
       setForumPosts(prev => prev.map(p => p.id === postId ? { ...p, comments_count: (p.comments_count || 0) + 1 } : p))
@@ -251,6 +262,16 @@ export default function CommunityPage() {
       const post = forumPosts.find(p => p.id === postId) || followingPosts.find(p => p.id === postId)
       const comment = post?.comments?.find(c => c.id === commentId)
       await supabase.from('forum_post_comments').update({ replies_count: (comment?.replies_count || 0) + 1 }).eq('id', commentId)
+      // Send notification to comment owner
+      if (comment && comment.user.id !== user.id) {
+        await sendNotification(
+          comment.user.id,
+          user.id,
+          'comment',
+          `${profile?.full_name} replied to your comment`,
+          postId
+        )
+      }
       setNewReplies(prev => ({ ...prev, [commentId]: '' }))
       setShowReplyInput(prev => ({ ...prev, [commentId]: false }))
       const updateComments = (posts: ForumPost[]) =>
@@ -278,6 +299,16 @@ export default function CommunityPage() {
       } else {
         await supabase.from('forum_comment_likes').insert({ comment_id: commentId, user_id: user.id })
         await supabase.from('forum_post_comments').update({ likes_count: (comment?.likes_count || 0) + 1 }).eq('id', commentId)
+        // Send notification to comment owner
+        if (comment && comment.user.id !== user.id) {
+          await sendNotification(
+            comment.user.id,
+            user.id,
+            'like',
+            `${profile?.full_name} liked your comment`,
+            postId
+          )
+        }
       }
       const updateComments = (posts: ForumPost[]) =>
         posts.map(p => p.id === postId ? {
@@ -304,6 +335,13 @@ export default function CommunityPage() {
         await supabase.from('user_follows').delete().eq('follower_id', user.id).eq('following_id', userId)
       } else {
         await supabase.from('user_follows').insert({ follower_id: user.id, following_id: userId })
+        // Send follow notification
+        await sendNotification(
+          userId,
+          user.id,
+          'follow',
+          `${profile?.full_name} started following you`
+        )
       }
       setUsers(users.map(u => u.id === userId ? { ...u, is_following: !isFollowing } : u))
       fetchFollowingPosts()
@@ -344,6 +382,16 @@ export default function CommunityPage() {
       } else {
         await supabase.from('forum_post_likes').insert({ post_id: postId, user_id: user.id })
         await supabase.from('forum_posts').update({ likes_count: (post?.likes_count || 0) + 1 }).eq('id', postId)
+        // Send notification to post owner
+        if (post && post.user.id !== user.id) {
+          await sendNotification(
+            post.user.id,
+            user.id,
+            'like',
+            `${profile?.full_name} liked your post`,
+            postId
+          )
+        }
       }
       fetchForumPosts()
     } catch (error) {
@@ -365,13 +413,16 @@ export default function CommunityPage() {
   const renderPost = (post: ForumPost) => (
     <Card key={post.id}>
       <CardHeader>
-        <div className="flex items-center gap-3">
+        <div
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => router.push(`/profile/${post.user?.id}`)}
+        >
           <Avatar className="h-10 w-10">
             <AvatarImage src={post.user?.profile_picture_url || "/placeholder.svg"} />
             <AvatarFallback>{post.user?.full_name?.[0]?.toUpperCase()}</AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-semibold">{post.user?.full_name}</p>
+            <p className="font-semibold hover:underline">{post.user?.full_name}</p>
             <p className="text-xs text-muted-foreground">{new Date(post.created_at).toLocaleDateString()}</p>
           </div>
         </div>
@@ -404,16 +455,23 @@ export default function CommunityPage() {
               post.comments?.map(comment => (
                 <div key={comment.id} className="space-y-2">
                   <div className="flex gap-2">
-                    <Avatar className="h-7 w-7 flex-shrink-0">
+                    <Avatar
+                      className="h-7 w-7 flex-shrink-0 cursor-pointer"
+                      onClick={() => router.push(`/profile/${comment.user?.id}`)}
+                    >
                       <AvatarImage src={comment.user?.profile_picture_url || "/placeholder.svg"} />
                       <AvatarFallback className="text-xs">{comment.user?.full_name?.[0]?.toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="bg-muted rounded-lg px-3 py-2">
-                        <p className="text-xs font-semibold">{comment.user?.full_name}</p>
+                        <p
+                          className="text-xs font-semibold cursor-pointer hover:underline"
+                          onClick={() => router.push(`/profile/${comment.user?.id}`)}
+                        >
+                          {comment.user?.full_name}
+                        </p>
                         <p className="text-sm">{comment.content}</p>
                       </div>
-                      {/* Comment Actions */}
                       <div className="flex items-center gap-3 mt-1 ml-1">
                         <button
                           onClick={() => likeComment(post.id, comment.id)}
@@ -469,12 +527,20 @@ export default function CommunityPage() {
                             comment.replies?.map(reply => (
                               <div key={reply.id} className="flex gap-2">
                                 <CornerDownRight className="h-3 w-3 text-muted-foreground mt-2 flex-shrink-0" />
-                                <Avatar className="h-6 w-6 flex-shrink-0">
+                                <Avatar
+                                  className="h-6 w-6 flex-shrink-0 cursor-pointer"
+                                  onClick={() => router.push(`/profile/${reply.user?.id}`)}
+                                >
                                   <AvatarImage src={reply.user?.profile_picture_url || "/placeholder.svg"} />
                                   <AvatarFallback className="text-xs">{reply.user?.full_name?.[0]?.toUpperCase()}</AvatarFallback>
                                 </Avatar>
                                 <div className="bg-muted rounded-lg px-3 py-1 flex-1">
-                                  <p className="text-xs font-semibold">{reply.user?.full_name}</p>
+                                  <p
+                                    className="text-xs font-semibold cursor-pointer hover:underline"
+                                    onClick={() => router.push(`/profile/${reply.user?.id}`)}
+                                  >
+                                    {reply.user?.full_name}
+                                  </p>
                                   <p className="text-xs">{reply.content}</p>
                                   <p className="text-xs text-muted-foreground mt-0.5">{new Date(reply.created_at).toLocaleDateString()}</p>
                                 </div>
@@ -546,12 +612,18 @@ export default function CommunityPage() {
               <Card key={u.id}>
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-3">
-                    <Avatar className="h-12 w-12">
+                    <Avatar
+                      className="h-12 w-12 cursor-pointer"
+                      onClick={() => router.push(`/profile/${u.id}`)}
+                    >
                       <AvatarImage src={u.profile_picture_url || "/placeholder.svg"} />
                       <AvatarFallback>{u.full_name[0]?.toUpperCase()}</AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold">{u.full_name}</h3>
+                    <div
+                      className="flex-1 min-w-0 cursor-pointer"
+                      onClick={() => router.push(`/profile/${u.id}`)}
+                    >
+                      <h3 className="font-semibold hover:underline">{u.full_name}</h3>
                       <p className="text-xs text-muted-foreground">{u.email}</p>
                       <p className="text-sm text-muted-foreground">{u.country}</p>
                       {u.bio && <p className="text-sm mt-1 line-clamp-2">{u.bio}</p>}
