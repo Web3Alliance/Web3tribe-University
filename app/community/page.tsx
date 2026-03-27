@@ -323,7 +323,6 @@ export default function CommunityPage() {
     }
   }
 
-  // --- NEW FUNCTION: Delete Post ---
   const handleDeletePost = async (postId: string) => {
     if (!user) return
     if (!window.confirm("Are you sure you want to delete this post? This action cannot be undone.")) return
@@ -334,7 +333,6 @@ export default function CommunityPage() {
       
       if (error) throw error
 
-      // Update UI state
       setForumPosts(prev => prev.filter(p => p.id !== postId))
       setFollowingPosts(prev => prev.filter(p => p.id !== postId))
       
@@ -344,25 +342,36 @@ export default function CommunityPage() {
     }
   }
 
-  // --- NEW FUNCTION: Delete Comment ---
+  // --- FIXED FUNCTION: Delete Comment ---
   const handleDeleteComment = async (postId: string, commentId: string) => {
     if (!user) return
     if (!window.confirm("Are you sure you want to delete this comment?")) return
 
     try {
       const supabase = createClient()
-      const { error } = await supabase.from('forum_post_comments').delete().eq('id', commentId)
       
+      // 1. Delete the comment from database
+      const { error } = await supabase.from('forum_post_comments').delete().eq('id', commentId)
       if (error) throw error
 
-      // Update UI state
+      // 2. Find the current post to get the accurate count
+      const currentPost = forumPosts.find(p => p.id === postId) || followingPosts.find(p => p.id === postId);
+      const newCount = Math.max(0, (currentPost?.comments_count || 0) - 1);
+
+      // 3. Update the comment count on the post in the database
+      await supabase
+        .from('forum_posts')
+        .update({ comments_count: newCount })
+        .eq('id', postId);
+
+      // 4. Update local state to reflect changes immediately
       const updateCommentsState = (posts: ForumPost[]) => posts.map(p => {
         if (p.id === postId) {
           const updatedComments = p.comments?.filter(c => c.id !== commentId)
           return { 
             ...p, 
             comments: updatedComments, 
-            comments_count: Math.max(0, p.comments_count - 1) 
+            comments_count: newCount 
           }
         }
         return p
@@ -476,7 +485,6 @@ export default function CommunityPage() {
               <p className="text-xs text-muted-foreground">{new Date(post.created_at).toLocaleDateString()}</p>
             </div>
           </div>
-          {/* Delete Post Button */}
           {post.user?.id === user?.id && (
             <Button 
               variant="ghost" 
@@ -506,7 +514,6 @@ export default function CommunityPage() {
           </Button>
         </div>
 
-        {/* Comments Section */}
         {post.showComments && (
           <div className="mt-4 border-t pt-4 space-y-4">
             {post.loadingComments ? (
@@ -547,7 +554,6 @@ export default function CommunityPage() {
                         >
                           💬 Reply
                         </button>
-                        {/* Delete Comment Button */}
                         {comment.user?.id === user?.id && (
                           <button
                             onClick={() => handleDeleteComment(post.id, comment.id)}
@@ -567,7 +573,6 @@ export default function CommunityPage() {
                         <span className="text-xs text-muted-foreground">{new Date(comment.created_at).toLocaleDateString()}</span>
                       </div>
 
-                      {/* Reply Input */}
                       {showReplyInput[comment.id] && (
                         <div className="flex gap-2 mt-2">
                           <Avatar className="h-6 w-6 flex-shrink-0">
@@ -589,7 +594,6 @@ export default function CommunityPage() {
                         </div>
                       )}
 
-                      {/* Replies */}
                       {comment.showReplies && (
                         <div className="mt-2 ml-4 space-y-2">
                           {comment.loadingReplies ? (
@@ -626,7 +630,6 @@ export default function CommunityPage() {
               ))
             )}
 
-            {/* Add Comment Input */}
             <div className="flex gap-2 mt-3">
               <Avatar className="h-7 w-7 flex-shrink-0">
                 <AvatarImage src={profile?.profile_picture_url || "/placeholder.svg"} />
@@ -656,7 +659,6 @@ export default function CommunityPage() {
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <h1 className="text-2xl font-bold">Community</h1>
 
-        {/* Search Bar */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex gap-2">
@@ -675,7 +677,6 @@ export default function CommunityPage() {
           </CardContent>
         </Card>
 
-        {/* Search Results */}
         {users.length > 0 && (
           <div className="space-y-3">
             <h2 className="text-lg font-semibold">Search Results</h2>
@@ -714,7 +715,6 @@ export default function CommunityPage() {
           </div>
         )}
 
-        {/* Create Post */}
         {!showCreatePost ? (
           <Button onClick={() => setShowCreatePost(true)} className="w-full">
             <Send className="h-4 w-4 mr-2" />Create Post
@@ -738,7 +738,6 @@ export default function CommunityPage() {
           </Card>
         )}
 
-        {/* Forum Posts */}
         <Tabs defaultValue="all" className="w-full" onValueChange={(value) => {
           if (value === 'following' && followingPosts.length === 0) fetchFollowingPosts()
         }}>
