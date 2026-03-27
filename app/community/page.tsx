@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Search, UserPlus, UserCheck, MessageCircle, Send, Heart, MessageSquare, ChevronDown, ChevronUp, CornerDownRight } from "lucide-react"
+import { Search, UserPlus, UserCheck, MessageCircle, Send, Heart, MessageSquare, ChevronDown, ChevronUp, CornerDownRight, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -233,7 +233,6 @@ export default function CommunityPage() {
       if (error) throw error
       const post = forumPosts.find(p => p.id === postId) || followingPosts.find(p => p.id === postId)
       await supabase.from('forum_posts').update({ comments_count: (post?.comments_count || 0) + 1 }).eq('id', postId)
-      // Send notification to post owner
       if (post && post.user.id !== user.id) {
         await sendNotification(
           post.user.id,
@@ -262,7 +261,6 @@ export default function CommunityPage() {
       const post = forumPosts.find(p => p.id === postId) || followingPosts.find(p => p.id === postId)
       const comment = post?.comments?.find(c => c.id === commentId)
       await supabase.from('forum_post_comments').update({ replies_count: (comment?.replies_count || 0) + 1 }).eq('id', commentId)
-      // Send notification to comment owner
       if (comment && comment.user.id !== user.id) {
         await sendNotification(
           comment.user.id,
@@ -299,7 +297,6 @@ export default function CommunityPage() {
       } else {
         await supabase.from('forum_comment_likes').insert({ comment_id: commentId, user_id: user.id })
         await supabase.from('forum_post_comments').update({ likes_count: (comment?.likes_count || 0) + 1 }).eq('id', commentId)
-        // Send notification to comment owner
         if (comment && comment.user.id !== user.id) {
           await sendNotification(
             comment.user.id,
@@ -326,6 +323,60 @@ export default function CommunityPage() {
     }
   }
 
+  // --- NEW FUNCTION: Delete Post ---
+  const handleDeletePost = async (postId: string) => {
+    if (!user) return
+    if (!window.confirm("Are you sure you want to delete this post? This action cannot be undone.")) return
+
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.from('forum_posts').delete().eq('id', postId)
+      
+      if (error) throw error
+
+      // Update UI state
+      setForumPosts(prev => prev.filter(p => p.id !== postId))
+      setFollowingPosts(prev => prev.filter(p => p.id !== postId))
+      
+      toast({ title: "Success", description: "Post deleted successfully" })
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.message || "Failed to delete post", variant: "destructive" })
+    }
+  }
+
+  // --- NEW FUNCTION: Delete Comment ---
+  const handleDeleteComment = async (postId: string, commentId: string) => {
+    if (!user) return
+    if (!window.confirm("Are you sure you want to delete this comment?")) return
+
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.from('forum_post_comments').delete().eq('id', commentId)
+      
+      if (error) throw error
+
+      // Update UI state
+      const updateCommentsState = (posts: ForumPost[]) => posts.map(p => {
+        if (p.id === postId) {
+          const updatedComments = p.comments?.filter(c => c.id !== commentId)
+          return { 
+            ...p, 
+            comments: updatedComments, 
+            comments_count: Math.max(0, p.comments_count - 1) 
+          }
+        }
+        return p
+      })
+
+      setForumPosts(prev => updateCommentsState(prev))
+      setFollowingPosts(prev => updateCommentsState(prev))
+      
+      toast({ title: "Success", description: "Comment deleted successfully" })
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.message || "Failed to delete comment", variant: "destructive" })
+    }
+  }
+
   const handleFollow = async (userId: string) => {
     if (!user) return
     try {
@@ -335,7 +386,6 @@ export default function CommunityPage() {
         await supabase.from('user_follows').delete().eq('follower_id', user.id).eq('following_id', userId)
       } else {
         await supabase.from('user_follows').insert({ follower_id: user.id, following_id: userId })
-        // Send follow notification
         await sendNotification(
           userId,
           user.id,
@@ -382,7 +432,6 @@ export default function CommunityPage() {
       } else {
         await supabase.from('forum_post_likes').insert({ post_id: postId, user_id: user.id })
         await supabase.from('forum_posts').update({ likes_count: (post?.likes_count || 0) + 1 }).eq('id', postId)
-        // Send notification to post owner
         if (post && post.user.id !== user.id) {
           await sendNotification(
             post.user.id,
@@ -413,18 +462,31 @@ export default function CommunityPage() {
   const renderPost = (post: ForumPost) => (
     <Card key={post.id}>
       <CardHeader>
-        <div
-          className="flex items-center gap-3 cursor-pointer"
-          onClick={() => router.push(`/profile/${post.user?.id}`)}
-        >
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={post.user?.profile_picture_url || "/placeholder.svg"} />
-            <AvatarFallback>{post.user?.full_name?.[0]?.toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="font-semibold hover:underline">{post.user?.full_name}</p>
-            <p className="text-xs text-muted-foreground">{new Date(post.created_at).toLocaleDateString()}</p>
+        <div className="flex items-center justify-between">
+          <div
+            className="flex items-center gap-3 cursor-pointer"
+            onClick={() => router.push(`/profile/${post.user?.id}`)}
+          >
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={post.user?.profile_picture_url || "/placeholder.svg"} />
+              <AvatarFallback>{post.user?.full_name?.[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-semibold hover:underline">{post.user?.full_name}</p>
+              <p className="text-xs text-muted-foreground">{new Date(post.created_at).toLocaleDateString()}</p>
+            </div>
           </div>
+          {/* Delete Post Button */}
+          {post.user?.id === user?.id && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => handleDeletePost(post.id)}
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -485,6 +547,15 @@ export default function CommunityPage() {
                         >
                           💬 Reply
                         </button>
+                        {/* Delete Comment Button */}
+                        {comment.user?.id === user?.id && (
+                          <button
+                            onClick={() => handleDeleteComment(post.id, comment.id)}
+                            className="text-xs font-semibold text-muted-foreground hover:text-destructive"
+                          >
+                            🗑️ Delete
+                          </button>
+                        )}
                         {comment.replies_count > 0 && (
                           <button
                             onClick={() => toggleReplies(post.id, comment.id)}
