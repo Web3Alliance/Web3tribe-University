@@ -369,6 +369,13 @@ export default function CreateCoursePage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Blockchain">Blockchain</SelectItem>
+                    <SelectItem value="Software Development">Software Development</SelectItem>
+                    <SelectItem value="Data Analysis">Data Analysis</SelectItem>
+                    <SelectItem value="Cyber Security">Cyber Security</SelectItem>
+                    <SelectItem value="Hardware">Hardware</SelectItem>
+                    <SelectItem value="Artificial Intelligence">Artificial Intelligence</SelectItem>
+                    <SelectItem value="Digital Marketing">Digital Marketing</SelectItem>
+                    <SelectItem value="Graphic Design">Graphic Design</SelectItem>
                     <SelectItem value="Development">Development</SelectItem>
                     <SelectItem value="DeFi">DeFi</SelectItem>
                     <SelectItem value="NFTs">NFTs</SelectItem>

@@ -114,7 +114,7 @@ export default function CoursesPage() {
     loadCourses()
   }, [])
 
-  const categories = ["all", "Blockchain", "Development", "DeFi", "NFTs", "Security", "Economics"]
+  const categories = ["all", "Blockchain", "Software Development", "Data Analysis", "Cyber Security", "Hardware", "Artificial Intelligence", "Digital Marketing", "Graphic Design"]
 
   // Memoize filtered courses to prevent recalculation on every render
   const filteredCourses = useMemo(() => {
