@@ -148,6 +148,7 @@ export default function CommunityPage() {
     } catch (error) {}
   }
 
+  // --- FIXED FUNCTION: Fetch Comments ---
   const fetchComments = async (postId: string) => {
     if (!user) return
     try {
@@ -159,14 +160,27 @@ export default function CommunityPage() {
       if (error) throw error
       const { data: commentLikes } = await supabase.from('forum_comment_likes').select('comment_id').eq('user_id', user.id)
       const likedCommentIds = new Set(commentLikes?.map(l => l.comment_id) || [])
+      
       const comments = data.map((c: any) => ({
         ...c,
         user: Array.isArray(c.user) ? c.user[0] : c.user,
         is_liked: likedCommentIds.has(c.id),
         replies: [], showReplies: false,
       }))
-      setForumPosts(prev => prev.map(p => p.id === postId ? { ...p, comments, loadingComments: false } : p))
-      setFollowingPosts(prev => prev.map(p => p.id === postId ? { ...p, comments, loadingComments: false } : p))
+
+      // FIX: Force the count to match the actual number of comments fetched
+      const actualCount = comments.length;
+      
+      // Update local state
+      setForumPosts(prev => prev.map(p => p.id === postId ? { ...p, comments, comments_count: actualCount, loadingComments: false } : p))
+      setFollowingPosts(prev => prev.map(p => p.id === postId ? { ...p, comments, comments_count: actualCount, loadingComments: false } : p))
+
+      // Optional: Update database if it was wrong (hygiene fix)
+      const currentPost = forumPosts.find(p => p.id === postId) || followingPosts.find(p => p.id === postId);
+      if (currentPost && currentPost.comments_count !== actualCount) {
+         await supabase.from('forum_posts').update({ comments_count: actualCount }).eq('id', postId);
+      }
+
     } catch (error) {
       setForumPosts(prev => prev.map(p => p.id === postId ? { ...p, loadingComments: false } : p))
     }
@@ -350,24 +364,17 @@ export default function CommunityPage() {
     try {
       const supabase = createClient()
       
-      // 1. Delete the comment from database
+      // 1. Delete from database
       const { error } = await supabase.from('forum_post_comments').delete().eq('id', commentId)
       if (error) throw error
 
-      // 2. Find the current post to get the accurate count
-      const currentPost = forumPosts.find(p => p.id === postId) || followingPosts.find(p => p.id === postId);
-      const newCount = Math.max(0, (currentPost?.comments_count || 0) - 1);
-
-      // 3. Update the comment count on the post in the database
-      await supabase
-        .from('forum_posts')
-        .update({ comments_count: newCount })
-        .eq('id', postId);
-
-      // 4. Update local state to reflect changes immediately
+      // 2. Update UI State based on remaining items
       const updateCommentsState = (posts: ForumPost[]) => posts.map(p => {
         if (p.id === postId) {
           const updatedComments = p.comments?.filter(c => c.id !== commentId)
+          // FIX: Use the actual length of the remaining comments
+          const newCount = updatedComments?.length || 0;
+          
           return { 
             ...p, 
             comments: updatedComments, 
@@ -380,6 +387,16 @@ export default function CommunityPage() {
       setForumPosts(prev => updateCommentsState(prev))
       setFollowingPosts(prev => updateCommentsState(prev))
       
+      // 3. Update Database Counter to match reality
+      // We re-fetch the count to be 100% sure or just use the local count
+      const currentPost = forumPosts.find(p => p.id === postId) || followingPosts.find(p => p.id === postId);
+      const newDbCount = Math.max(0, (currentPost?.comments_count || 1) - 1);
+      
+      await supabase
+        .from('forum_posts')
+        .update({ comments_count: newDbCount })
+        .eq('id', postId);
+
       toast({ title: "Success", description: "Comment deleted successfully" })
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "Failed to delete comment", variant: "destructive" })
