@@ -10,7 +10,7 @@ import { MobileNav } from "@/components/mobile-nav"
 import { ToasterClient } from "@/components/toaster-client"
 import "./globals.css"
 export const metadata: Metadata = {
-  title: "Made with App Studio",
+  title: "Web3Tribe University",
   description: "Web3Tribe Uni - Learn and Earn",
   applicationName: "Web3Tribe University",
   authors: [
@@ -43,6 +43,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="icon" href="/favicon.ico" />
         <meta name="application-name" content="Web3Tribe University" />
         <meta name="author" content="Skiibiidarsh" />
         <meta name="developer" content="Skiibiidarsh" />
