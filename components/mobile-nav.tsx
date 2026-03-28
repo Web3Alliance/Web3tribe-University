@@ -1,25 +1,46 @@
 "use client"
 
-import { BookOpen, GraduationCap, Wallet, Upload, Home, ArrowRightLeft, Award, Shield, User, Users, MessageCircle } from "lucide-react"
+import { BookOpen, GraduationCap, Wallet, Upload, Home, ArrowRightLeft, Award, Shield, User, Users, MessageCircle, Bell } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/contexts/auth-context"
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
 
 export function MobileNav() {
   const pathname = usePathname()
   const { user, profile } = useAuth()
+  const [unreadCount, setUnreadCount] = useState(0)
 
-  // Don't show nav if user is not logged in
-  if (!user) {
-    return null
+  useEffect(() => {
+    if (!user) return
+    fetchUnreadCount()
+    // Poll every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000)
+    return () => clearInterval(interval)
+  }, [user])
+
+  const fetchUnreadCount = async () => {
+    try {
+      const supabase = createClient()
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user!.id)
+        .eq('is_read', false)
+      setUnreadCount(count || 0)
+    } catch (error) {}
   }
+
+  if (!user) return null
 
   const mainNavItems = [
     { href: "/", icon: Home, label: "Home" },
     { href: "/courses", icon: BookOpen, label: "Courses" },
     { href: "/community", icon: Users, label: "Community" },
+    { href: "/notifications", icon: Bell, label: "Alerts" },
   ]
 
   const moreItems = [
@@ -42,11 +63,18 @@ export function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
+                "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors relative",
                 isActive ? "text-primary" : "text-muted-foreground",
               )}
             >
-              <Icon className="h-5 w-5" />
+              <div className="relative">
+                <Icon className="h-5 w-5" />
+                {item.href === "/notifications" && unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </div>
               <span className="text-xs font-medium">{item.label}</span>
             </Link>
           )
