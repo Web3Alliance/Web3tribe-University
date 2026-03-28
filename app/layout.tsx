@@ -8,7 +8,9 @@ import { AuthProvider } from "@/contexts/auth-context"
 import { TopBar } from "@/components/top-bar"
 import { MobileNav } from "@/components/mobile-nav"
 import { ToasterClient } from "@/components/toaster-client"
+import Script from "next/script" // Added this import
 import "./globals.css"
+
 export const metadata: Metadata = {
   title: "Web3Tribe University",
   description: "Web3Tribe Uni - Learn and Earn",
@@ -33,8 +35,9 @@ export const metadata: Metadata = {
     description: "Learn Web3 and earn W3TR tokens",
     creator: "@Skiibiidarsh",
   },
-    generator: 'v0.app'
+  generator: 'v0.app'
 }
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -57,7 +60,7 @@ export default function RootLayout({
         <meta name="twitter:site" content="@Skiibiidarsh" />
         <link rel="canonical" href="https://www.tribe.theweb3alliance.org/" />
         <link rel="manifest" href="/manifest.json" />
-        <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+        {/* Removed the old manual script tag from here */}
         <style>{`
 html {
   font-family: ${GeistSans.style.fontFamily};
@@ -67,6 +70,12 @@ html {
         `}</style>
       </head>
       <body>
+        {/* Added the correct Next.js Script component here */}
+        <Script
+          src="https://sdk.minepi.com/pi-sdk.js"
+          strategy="beforeInteractive"
+        />
+        
         <AppWrapper>
           <AuthProvider>
             <TopBar />
