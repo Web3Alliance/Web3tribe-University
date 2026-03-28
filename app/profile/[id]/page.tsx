@@ -111,12 +111,12 @@ export default function UserProfilePage() {
           .insert({ follower_id: user.id, following_id: profileId })
         setIsFollowing(true)
         
-        await sendNotification({
-          userId: profileId,
-          senderId: user.id,
-          type: 'follow',
-          message: `${currentUserProfile?.full_name} started following you`
-        })
+        await sendNotification(
+          profileId,
+          user.id,
+          'follow',
+          `${currentUserProfile?.full_name} started following you`
+        )
       }
     } catch (error) {
       toast({ title: "Error", description: "Failed to update follow status", variant: "destructive" })
@@ -210,8 +210,6 @@ export default function UserProfilePage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Stats Row Removed for Privacy */}
 
         {/* Posts Section */}
         <div className="space-y-4">
