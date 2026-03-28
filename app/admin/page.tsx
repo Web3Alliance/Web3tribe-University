@@ -41,7 +41,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!profile) return
-
     if (!profile.is_admin) {
       toast({
         title: "Access Denied",
@@ -51,32 +50,41 @@ export default function AdminDashboard() {
       router.push("/")
       return
     }
-
     fetchCourses()
   }, [profile])
 
   const fetchCourses = async () => {
     try {
       const supabase = createClient()
+
+      // Fetch courses without join
       const { data, error } = await supabase
         .from('courses')
-        .select(`
-          *,
-          tutor:users!tutor_id(full_name, email)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
 
       if (error) throw error
 
+      // Fetch tutor info separately
+      const tutorIds = [...new Set(data.map((c: any) => c.tutor_id).filter(Boolean))]
+      let tutorsMap = new Map()
+
+      if (tutorIds.length > 0) {
+        const { data: tutors } = await supabase
+          .from('users')
+          .select('id, full_name, email')
+          .in('id', tutorIds)
+        tutors?.forEach((t: any) => tutorsMap.set(t.id, t))
+      }
+
       const coursesWithTutorInfo = data.map((course: any) => ({
         ...course,
-        tutor_name: course.tutor?.full_name || 'Unknown',
-        tutor_email: course.tutor?.email || ''
+        tutor_name: tutorsMap.get(course.tutor_id)?.full_name || course.tutor_name || 'Unknown',
+        tutor_email: tutorsMap.get(course.tutor_id)?.email || course.tutor_email || ''
       }))
 
       setCourses(coursesWithTutorInfo)
     } catch (error: any) {
-      console.error('[v0] Error fetching courses:', error)
       toast({
         title: "Error loading courses",
         description: error.message,
@@ -92,7 +100,6 @@ export default function AdminDashboard() {
     try {
       const supabase = createClient()
 
-      // Update course status
       const { error: updateError } = await supabase
         .from('courses')
         .update({ status: 'approved' })
@@ -100,14 +107,12 @@ export default function AdminDashboard() {
 
       if (updateError) throw updateError
 
-      // Create review record
       await supabase.from('course_reviews').insert({
         course_id: course.id,
         reviewer_id: user?.id,
         action: 'approved'
       })
 
-      // Send approval email
       await fetch('/api/admin/notify-tutor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -119,19 +124,10 @@ export default function AdminDashboard() {
         })
       })
 
-      toast({
-        title: "Course Approved",
-        description: "The tutor has been notified",
-      })
-
+      toast({ title: "Course Approved", description: "The tutor has been notified" })
       fetchCourses()
     } catch (error: any) {
-      console.error('[v0] Error approving course:', error)
-      toast({
-        title: "Error approving course",
-        description: error.message,
-        variant: "destructive",
-      })
+      toast({ title: "Error approving course", description: error.message, variant: "destructive" })
     } finally {
       setProcessing(false)
     }
@@ -151,18 +147,13 @@ export default function AdminDashboard() {
     try {
       const supabase = createClient()
 
-      // Update course status and add rejection reason
       const { error: updateError } = await supabase
         .from('courses')
-        .update({ 
-          status: 'rejected',
-          rejection_reason: rejectionReason
-        })
+        .update({ status: 'rejected', rejection_reason: rejectionReason })
         .eq('id', selectedCourse.id)
 
       if (updateError) throw updateError
 
-      // Create review record
       await supabase.from('course_reviews').insert({
         course_id: selectedCourse.id,
         reviewer_id: user?.id,
@@ -170,7 +161,6 @@ export default function AdminDashboard() {
         reason: rejectionReason
       })
 
-      // Send rejection email
       await fetch('/api/admin/notify-tutor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -183,22 +173,13 @@ export default function AdminDashboard() {
         })
       })
 
-      toast({
-        title: "Course Rejected",
-        description: "The tutor has been notified with the reason",
-      })
-
+      toast({ title: "Course Rejected", description: "The tutor has been notified with the reason" })
       setShowRejectDialog(false)
       setRejectionReason("")
       setSelectedCourse(null)
       fetchCourses()
     } catch (error: any) {
-      console.error('[v0] Error rejecting course:', error)
-      toast({
-        title: "Error rejecting course",
-        description: error.message,
-        variant: "destructive",
-      })
+      toast({ title: "Error rejecting course", description: error.message, variant: "destructive" })
     } finally {
       setProcessing(false)
     }
@@ -215,8 +196,8 @@ export default function AdminDashboard() {
             </CardDescription>
           </div>
           <Badge variant={
-            course.status === 'approved' ? 'default' : 
-            course.status === 'rejected' ? 'destructive' : 
+            course.status === 'approved' ? 'default' :
+            course.status === 'rejected' ? 'destructive' :
             'secondary'
           }>
             {course.status}
@@ -224,9 +205,7 @@ export default function AdminDashboard() {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground line-clamp-2">
-          {course.description}
-        </p>
+        <p className="text-sm text-muted-foreground line-clamp-2">{course.description}</p>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>{course.total_modules} modules</span>
           <span>•</span>
@@ -234,38 +213,16 @@ export default function AdminDashboard() {
         </div>
         {course.status === 'pending' && (
           <div className="flex gap-2 pt-2">
-            <Button
-              size="sm"
-              className="flex-1"
-              onClick={() => handleApprove(course)}
-              disabled={processing}
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Approve
+            <Button size="sm" className="flex-1" onClick={() => handleApprove(course)} disabled={processing}>
+              <CheckCircle className="h-4 w-4 mr-2" />Approve
             </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              className="flex-1"
-              onClick={() => {
-                setSelectedCourse(course)
-                setShowRejectDialog(true)
-              }}
-              disabled={processing}
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Reject
+            <Button size="sm" variant="destructive" className="flex-1" onClick={() => { setSelectedCourse(course); setShowRejectDialog(true) }} disabled={processing}>
+              <XCircle className="h-4 w-4 mr-2" />Reject
             </Button>
           </div>
         )}
-        <Button
-          size="sm"
-          variant="outline"
-          className="w-full bg-transparent"
-          onClick={() => router.push(`/courses/${course.id}`)}
-        >
-          <Eye className="h-4 w-4 mr-2" />
-          View Details
+        <Button size="sm" variant="outline" className="w-full bg-transparent" onClick={() => router.push(`/courses/${course.id}`)}>
+          <Eye className="h-4 w-4 mr-2" />View Details
         </Button>
       </CardContent>
     </Card>
@@ -279,9 +236,7 @@ export default function AdminDashboard() {
     )
   }
 
-  if (!profile?.is_admin) {
-    return null
-  }
+  if (!profile?.is_admin) return null
 
   const pendingCourses = courses.filter(c => c.status === 'pending')
   const approvedCourses = courses.filter(c => c.status === 'approved')
@@ -326,57 +281,27 @@ export default function AdminDashboard() {
 
         <Tabs defaultValue="pending" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="pending">
-              Pending ({pendingCourses.length})
-            </TabsTrigger>
-            <TabsTrigger value="approved">
-              Approved ({approvedCourses.length})
-            </TabsTrigger>
-            <TabsTrigger value="rejected">
-              Rejected ({rejectedCourses.length})
-            </TabsTrigger>
+            <TabsTrigger value="pending">Pending ({pendingCourses.length})</TabsTrigger>
+            <TabsTrigger value="approved">Approved ({approvedCourses.length})</TabsTrigger>
+            <TabsTrigger value="rejected">Rejected ({rejectedCourses.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="pending" className="space-y-3 mt-4">
             {pendingCourses.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  No pending courses to review
-                </CardContent>
-              </Card>
-            ) : (
-              pendingCourses.map(course => (
-                <CourseCard key={course.id} course={course} />
-              ))
-            )}
+              <Card><CardContent className="py-8 text-center text-muted-foreground">No pending courses to review</CardContent></Card>
+            ) : pendingCourses.map(course => <CourseCard key={course.id} course={course} />)}
           </TabsContent>
 
           <TabsContent value="approved" className="space-y-3 mt-4">
             {approvedCourses.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  No approved courses yet
-                </CardContent>
-              </Card>
-            ) : (
-              approvedCourses.map(course => (
-                <CourseCard key={course.id} course={course} />
-              ))
-            )}
+              <Card><CardContent className="py-8 text-center text-muted-foreground">No approved courses yet</CardContent></Card>
+            ) : approvedCourses.map(course => <CourseCard key={course.id} course={course} />)}
           </TabsContent>
 
           <TabsContent value="rejected" className="space-y-3 mt-4">
             {rejectedCourses.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  No rejected courses
-                </CardContent>
-              </Card>
-            ) : (
-              rejectedCourses.map(course => (
-                <CourseCard key={course.id} course={course} />
-              ))
-            )}
+              <Card><CardContent className="py-8 text-center text-muted-foreground">No rejected courses</CardContent></Card>
+            ) : rejectedCourses.map(course => <CourseCard key={course.id} course={course} />)}
           </TabsContent>
         </Tabs>
       </div>
@@ -386,8 +311,7 @@ export default function AdminDashboard() {
           <DialogHeader>
             <DialogTitle>Reject Course</DialogTitle>
             <DialogDescription>
-              Please provide a reason for rejecting "{selectedCourse?.title}". 
-              This will be sent to the tutor.
+              Please provide a reason for rejecting "{selectedCourse?.title}". This will be sent to the tutor.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -401,31 +325,14 @@ export default function AdminDashboard() {
             />
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowRejectDialog(false)
-                setRejectionReason("")
-                setSelectedCourse(null)
-              }}
-            >
+            <Button variant="outline" onClick={() => { setShowRejectDialog(false); setRejectionReason(""); setSelectedCourse(null) }}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={processing || !rejectionReason.trim()}
-            >
+            <Button variant="destructive" onClick={handleReject} disabled={processing || !rejectionReason.trim()}>
               {processing ? (
-                <>
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  Rejecting...
-                </>
+                <><div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />Rejecting...</>
               ) : (
-                <>
-                  <Mail className="h-4 w-4 mr-2" />
-                  Send Rejection
-                </>
+                <><Mail className="h-4 w-4 mr-2" />Send Rejection</>
               )}
             </Button>
           </DialogFooter>
