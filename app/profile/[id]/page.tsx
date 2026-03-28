@@ -41,7 +41,6 @@ export default function UserProfilePage() {
   const [isFollowing, setIsFollowing] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  // Get the ID from the URL (e.g., /profile/123-abc)
   const profileId = params.id as string
 
   useEffect(() => {
@@ -55,7 +54,6 @@ export default function UserProfilePage() {
     try {
       const supabase = createClient()
 
-      // 1. Fetch User Details
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
@@ -69,7 +67,6 @@ export default function UserProfilePage() {
       }
       setProfileUser(userData)
 
-      // 2. Check if following (only if logged in and not own profile)
       if (user && user.id !== profileId) {
         const { data: followData } = await supabase
           .from('user_follows')
@@ -81,7 +78,6 @@ export default function UserProfilePage() {
         setIsFollowing(!!followData)
       }
 
-      // 3. Fetch User's Posts
       const { data: postsData } = await supabase
         .from('forum_posts')
         .select('id, content, likes_count, comments_count, created_at')
@@ -115,7 +111,6 @@ export default function UserProfilePage() {
           .insert({ follower_id: user.id, following_id: profileId })
         setIsFollowing(true)
         
-        // Send Notification
         await sendNotification({
           userId: profileId,
           senderId: user.id,
@@ -128,7 +123,6 @@ export default function UserProfilePage() {
     }
   }
 
-  // Loading State
   if (loading || !profileUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -137,7 +131,6 @@ export default function UserProfilePage() {
     )
   }
 
-  // Check if viewing own profile
   const isOwnProfile = user?.id === profileId
 
   return (
@@ -218,27 +211,7 @@ export default function UserProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="pt-4 pb-4 text-center">
-              <p className="text-2xl font-bold text-primary">{posts.length}</p>
-              <p className="text-xs text-muted-foreground">Posts</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-4 text-center">
-              <p className="text-2xl font-bold text-primary">{profileUser.w3tr_balance?.toFixed(2) || '0.00'}</p>
-              <p className="text-xs text-muted-foreground">Balance</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-4 text-center">
-              <p className="text-2xl font-bold text-primary">-</p>
-              <p className="text-xs text-muted-foreground">Followers</p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Stats Row Removed for Privacy */}
 
         {/* Posts Section */}
         <div className="space-y-4">
