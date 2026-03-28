@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Bell, Heart, MessageSquare, UserPlus } from "lucide-react"
+import { Bell, Heart, MessageSquare, UserPlus, Mail } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -15,6 +15,7 @@ interface Notification {
   message: string
   is_read: boolean
   created_at: string
+  post_id?: string
   sender: {
     id: string
     full_name: string
@@ -41,7 +42,7 @@ export default function NotificationsPage() {
       const supabase = createClient()
       const { data, error } = await supabase
         .from('notifications')
-        .select('id, type, message, is_read, created_at, sender_id')
+        .select('id, type, message, is_read, created_at, sender_id, post_id')
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(50)
@@ -76,10 +77,27 @@ export default function NotificationsPage() {
     }
   }
 
+  const handleNotificationClick = (notification: Notification) => {
+    if (notification.type === 'message') {
+      router.push(`/messages?user=${notification.sender.id}`)
+    } else if (notification.type === 'follow') {
+      router.push(`/profile/${notification.sender.id}`)
+    } else if (notification.type === 'like' || notification.type === 'comment') {
+      if (notification.post_id) {
+        router.push(`/community?post=${notification.post_id}`)
+      } else {
+        router.push('/community')
+      }
+    } else {
+      router.push('/community')
+    }
+  }
+
   const getIcon = (type: string) => {
     if (type === 'follow') return <UserPlus className="h-4 w-4 text-blue-500" />
     if (type === 'like') return <Heart className="h-4 w-4 text-red-500" />
     if (type === 'comment') return <MessageSquare className="h-4 w-4 text-green-500" />
+    if (type === 'message') return <Mail className="h-4 w-4 text-purple-500" />
     return <Bell className="h-4 w-4" />
   }
 
@@ -107,7 +125,11 @@ export default function NotificationsPage() {
           </Card>
         ) : (
           notifications.map(notification => (
-            <Card key={notification.id} className={!notification.is_read ? 'border-primary' : ''}>
+            <Card
+              key={notification.id}
+              className={`cursor-pointer hover:bg-accent transition-colors ${!notification.is_read ? 'border-primary' : ''}`}
+              onClick={() => handleNotificationClick(notification)}
+            >
               <CardContent className="pt-4 pb-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
