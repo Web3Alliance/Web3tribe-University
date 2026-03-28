@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 export default function TestPaymentPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [statusMessage, setStatusMessage] = useState("Initializing Pi SDK...")
-  // Prevents double initialization in React Strict Mode
   const isInitializing = useRef(false)
 
   useEffect(() => {
@@ -15,7 +14,7 @@ export default function TestPaymentPage() {
     isInitializing.current = true
 
     const initPiSDK = async () => {
-      // 1. Wait for Pi Script to load
+      // Wait for script
       let attempts = 0
       while (!(window as any).Pi && attempts < 20) {
         await new Promise((resolve) => setTimeout(resolve, 100))
@@ -23,31 +22,26 @@ export default function TestPaymentPage() {
       }
 
       const Pi = (window as any).Pi
-
       if (!Pi) {
         setStatusMessage("Error: Pi SDK not found. Open in Pi Browser.")
         return
       }
 
       try {
-        // 2. Initialize
-        console.log("Initializing Pi...")
         Pi.init({ version: "2.0", sandbox: true })
-        console.log("Pi Initialized.")
         
-        // 3. Authenticate (This triggers onIncompletePaymentFound automatically)
-        setStatusMessage("Authenticating...")
+        setStatusMessage("Checking for pending payments...")
+        
         const auth = await Pi.authenticate(
           ["payments", "username"],
-          onIncompletePaymentFound // <--- THIS HANDLES ALL PENDING PAYMENTS
+          onIncompletePaymentFound // This handles the stuck payment
         )
 
-        console.log("Auth success:", auth)
         setIsAuthenticated(true)
         setStatusMessage(`Ready. Logged in as ${auth.user.username}.`)
         
       } catch (error: any) {
-        console.error("Init/Auth Error:", error)
+        console.error("Auth Error:", error)
         setStatusMessage(`Error: ${error.message}`)
       }
     }
@@ -55,95 +49,84 @@ export default function TestPaymentPage() {
     initPiSDK()
   }, [])
 
-  // THIS FUNCTION PROCESSES ALL PENDING PAYMENTS AUTOMATICALLY
+  // THIS FUNCTION HANDLES THE STUCK PAYMENT
   const onIncompletePaymentFound = async (payment: any) => {
-    console.log("⚠️ Incomplete payment detected:", payment)
-    setStatusMessage(`Resolving pending payment: ${payment.identifier}...`)
+    console.log("Found incomplete payment:", payment)
+    setStatusMessage(`Found pending payment: ${payment.identifier}`)
 
-    try {
-      // 1. Try to complete the payment via your backend
-      const res = await fetch("/api/pi/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          paymentId: payment.identifier,
-          txid: payment.transaction?.txid // Might be missing if not signed
+    // SCENARIO A: Payment has a TXID (User signed it) -> COMPLETE IT
+    if (payment.transaction && payment.transaction.txid) {
+      setStatusMessage("Completing signed payment...")
+      try {
+        const res = await fetch("/api/pi/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paymentId: payment.identifier,
+            txid: payment.transaction.txid
+          })
         })
-      })
-      
-      const data = await res.json()
-
-      if (res.ok) {
-        console.log("✅ Pending payment resolved:", data)
-        setStatusMessage("Pending payment resolved successfully!")
-      } else {
-        // Handle cases where backend says "Not approved yet" or other errors
-        console.error("Backend error resolving payment:", data)
-        setStatusMessage(`Error resolving payment: ${data.error}`)
+        const data = await res.json()
+        console.log("Payment completed:", data)
+        setStatusMessage("Previous payment completed!")
+      } catch (err) {
+        console.error("Error completing payment", err)
       }
-    } catch (err) {
-      console.error("Network error resolving payment", err)
-      setStatusMessage("Network error resolving pending payment.")
+    } 
+    // SCENARIO B: Payment has NO TXID (User cancelled or closed app) -> CANCEL IT
+    else {
+      setStatusMessage("Cancelling unsigned pending payment...")
+      try {
+        const res = await fetch("/api/pi/cancel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentId: payment.identifier })
+        })
+        const data = await res.json()
+        console.log("Payment cancelled:", data)
+        setStatusMessage("Stuck payment cleared. You can now pay.")
+      } catch (err) {
+        console.error("Error cancelling payment", err)
+        setStatusMessage("Error clearing stuck payment.")
+      }
     }
   }
 
-  // THIS FUNCTION HANDLES NEW PAYMENTS
   const handleNewPayment = async () => {
     const Pi = (window as any).Pi
     if (!Pi || !isAuthenticated) return
+    setStatusMessage("Starting payment...")
 
-    setStatusMessage("Starting new payment...")
-    
     try {
       await Pi.createPayment(
+        { amount: 1, memo: "Test course payment", metadata: { test: true } },
         {
-          amount: 1,
-          memo: "Test course payment",
-          metadata: { courseId: "test-101" }
-        },
-        {
-          // Step 1: Backend Approval
           onReadyForServerApproval: async (paymentId: string) => {
-            setStatusMessage("Payment created. Approving...")
-            try {
-              const res = await fetch("/api/pi/approve", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ paymentId })
-              })
-              const data = await res.json()
-              console.log("Approval response", data)
-              setStatusMessage("Approved. Waiting for blockchain completion...")
-            } catch (err) {
-              console.error("Approval error", err)
-              setStatusMessage("Error during server approval.")
-            }
+            setStatusMessage("Approving...")
+            await fetch("/api/pi/approve", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ paymentId })
+            })
           },
-          // Step 2: Backend Completion
           onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-            setStatusMessage(`Blockchain tx found. Completing...`)
-            try {
-              const res = await fetch("/api/pi/complete", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ paymentId, txid })
-              })
-              const data = await res.json()
-              console.log("Completion response", data)
-              setStatusMessage("✅ Payment Successful!")
-            } catch (err) {
-              console.error("Completion error", err)
-              setStatusMessage("Error during server completion.")
-            }
+            setStatusMessage("Completing...")
+            await fetch("/api/pi/complete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ paymentId, txid })
+            })
+            setStatusMessage("Success!")
           },
           onCancel: (paymentId: string) => {
-            setStatusMessage("Payment cancelled by user.")
-            console.log("Cancelled", paymentId)
+            // IMPORTANT: Also call cancel API here so it doesn't get stuck next time
+            fetch("/api/pi/cancel", { 
+                method: "POST", 
+                body: JSON.stringify({ paymentId }) 
+            })
+            setStatusMessage("Payment cancelled")
           },
-          onError: (error: any, payment: any) => {
-            setStatusMessage(`Payment Error: ${error.message}`)
-            console.error("Payment Error", error, payment)
-          }
+          onError: (error: any) => setStatusMessage(`Error: ${error.message}`)
         }
       )
     } catch (error: any) {
@@ -154,25 +137,12 @@ export default function TestPaymentPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Pi Payment Integration</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Payment Integration</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="text-sm p-3 bg-muted rounded-lg min-h-[60px] break-words">
-            {statusMessage}
-          </div>
-          
-          <Button 
-            onClick={handleNewPayment} 
-            className="w-full"
-            disabled={!isAuthenticated}
-          >
+          <div className="text-sm p-3 bg-muted rounded-lg min-h-[60px]">{statusMessage}</div>
+          <Button onClick={handleNewPayment} className="w-full" disabled={!isAuthenticated}>
             {isAuthenticated ? "Pay 1 Pi (Test)" : "Authenticating..."}
           </Button>
-          
-          <p className="text-xs text-muted-foreground text-center">
-            Pending payments are processed automatically on load.
-          </p>
         </CardContent>
       </Card>
     </div>
