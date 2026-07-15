@@ -1,4 +1,4 @@
-﻿# Web3tribe University
+# Web3tribe University
 
 **Learn. Build. Earn.**
 
@@ -44,6 +44,54 @@ This repository is being submitted to the **NextGen Innovation Challenge 2026** 
 ---
 
 ## Project structure
+
+```
+app/
+  (marketing)            → landing page, at app/page.tsx
+  login/ register/ ...   → auth pages
+  student/                → dashboard, courses, learning, wallet, certificates, discussion
+  instructor/             → dashboard, course authoring (curriculum, quizzes, resources), analytics
+  organization/           → dashboard, programs, learners
+  admin/                  → user management, course moderation, rewards, donations, CMS
+  super-admin/            → feature flags, system settings
+  api/                    → REST route handlers (courses, lessons, quizzes, certificates,
+                             donations, rewards, notifications, uploads)
+components/
+  ui/                     → hand-built shadcn-style primitives (button, dialog, table, ...)
+  dashboard/              → shell, sidebar, topbar shared across all role dashboards
+  course/                 → course cards, curriculum builder, quiz builder, lesson/quiz
+                             players, file upload, resources, certificate claim
+  discussion/             → course chat board and like/dislike reaction buttons
+  admin/ settings/        → role-specific interactive widgets
+contexts/
+  auth-context.tsx        → client-side session/profile state
+lib/
+  supabase/               → browser / server / admin (service-role) / middleware clients
+  actions/                → Next.js Server Actions (auth, courses, quizzes, resources,
+                             discussions, admin, organization, ...)
+  reward-engine.ts        → the W3TR ledger abstraction (see blockchain note above)
+  tokenomics.ts           → fixed, platform-wide W3TR reward constants
+  rbac.ts                 → role-based access control helpers
+  certificate.ts          → PDF certificate generation
+  paystack.ts             → Paystack donation integration
+supabase/
+  migrations/0001_schema.sql               → tables, enums, functions, triggers, RLS
+  migrations/0002_storage.sql              → storage buckets and their policies
+  migrations/0003_tokenomics_and_resources.sql → fixed rewards, unlimited quiz retakes,
+                                              course_resources table
+  migrations/0004_discussion_chat.sql      → course chat, reactions, auto-moderation,
+                                              realtime, reply-permission fix
+  seed/seed.sql                            → categories, reward rules, feature flags,
+                                              sample donation campaign, sample course
+scripts/
+  test-*.js               → schema/reward-engine/RLS/migration validation scripts (run
+                             against an in-memory Postgres via PGlite — no live Supabase
+                             required)
+tests/
+  unit/                   → Vitest unit tests (rbac, reward-engine, utils)
+  e2e/                    → Playwright E2E tests (see tests/e2e/*.spec.ts for prerequisites)
+```
+
 ---
 
 ## Getting started
@@ -67,9 +115,9 @@ To apply the migrations one at a time instead:
 3. Optionally run `supabase/seed/seed.sql` for categories, default reward rules, feature flags, and a sample donation campaign.
 4. Register an instructor account through `/register`, then re-run the sample-course block at the bottom of `seed.sql` if you want a populated example course (see the comment in that file — it explains why this can't be fully automated, since `auth.users` is managed by Supabase Auth, not plain SQL).
 5. Promote your own account to `super_admin` for full access:
-```sql
+   ```sql
    update public.profiles set role = 'super_admin' where email = 'you@example.com';
-```
+   ```
 
 ### Running the test suites
 
@@ -81,8 +129,8 @@ npm run db:test-rls         # exercises RLS policies with simulated Supabase rol
 npm run db:test-storage     # validates the storage buckets/policies migration
 npm run db:test-seed        # validates the seed script (with and without an instructor present)
 node scripts/test-migration-0003.js   # tokenomics/resources migration validation
-node scripts/test-migration-0004.js   # discussion/chat migration validation (incl. the
-                                       # 5-dislike auto-delete trigger)
+node scripts/test-migration-0004.js  # discussion/chat migration validation (incl. the
+                                     # 5-dislike auto-delete trigger)
 npm run test:e2e            # Playwright E2E — requires a running dev server + real Supabase project
 ```
 
