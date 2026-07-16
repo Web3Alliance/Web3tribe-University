@@ -8,13 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
 const initialState: AuthActionState = { error: null };
-
 export function RegistrationForm() {
   const [state, formAction, isPending] = useActionState(registerAction, initialState);
   const [role, setRole] = React.useState("student");
-
   if (state.success) {
     return (
       <Card className="w-full max-w-md">
@@ -32,7 +29,6 @@ export function RegistrationForm() {
       </Card>
     );
   }
-
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1 text-center">
@@ -54,11 +50,10 @@ export function RegistrationForm() {
             <Input id="password" name="password" type="password" required minLength={8} autoComplete="new-password" />
             <p className="text-xs text-muted-foreground">At least 8 characters.</p>
           </div>
-
           <div className="space-y-2">
             <Label>I am joining as a…</Label>
             <input type="hidden" name="role" value={role} />
-            <RadioGroup value={role} onValueChange={setRole} className="grid grid-cols-3 gap-2">
+            <RadioGroup value={role} onValueChange={setRole} className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               {[
                 { value: "student", label: "Student" },
                 { value: "instructor", label: "Instructor" },
@@ -74,18 +69,15 @@ export function RegistrationForm() {
               ))}
             </RadioGroup>
           </div>
-
           {state.error && (
             <p role="alert" className="text-sm text-destructive">
               {state.error}
             </p>
           )}
-
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Creating account…" : "Create account"}
           </Button>
         </form>
-
         <p className="mt-4 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link href="/login" className="text-primary hover:underline">

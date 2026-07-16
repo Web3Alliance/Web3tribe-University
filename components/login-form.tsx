@@ -3,6 +3,7 @@ import * as React from "react";
 import { useActionState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { loginAction, type AuthActionState } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,18 @@ export function LoginForm() {
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
   const [googleLoading, setGoogleLoading] = React.useState(false);
 
+  // Surfaces the failure if /api/auth/callback redirected back here after
+  // Google's consent screen succeeded but exchanging the code for a session
+  // failed (e.g. the callback URL isn't in Supabase's Redirect URLs allow
+  // list yet). Without this, that failure mode looks like "nothing happens."
+  React.useEffect(() => {
+    const oauthError = searchParams.get("error");
+    if (oauthError === "oauth_failed") {
+      const detail = searchParams.get("detail");
+      toast.error(detail ? `Google sign-in failed: ${detail}` : "Google sign-in didn't complete. Please try again.");
+    }
+  }, [searchParams]);
+
   async function handleGoogleLogin() {
     setGoogleLoading(true);
     const supabase = createClient();
@@ -28,7 +41,10 @@ export function LoginForm() {
         redirectTo: `${window.location.origin}/api/auth/callback${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""}`,
       },
     });
-    if (error) setGoogleLoading(false);
+    if (error) {
+      toast.error(error.message || "Google sign-in failed. Please try again.");
+      setGoogleLoading(false);
+    }
   }
 
   return (

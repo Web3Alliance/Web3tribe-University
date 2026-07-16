@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { logoutAction } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MobileNav } from "@/components/dashboard/mobile-nav";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,18 +18,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { initials, formatW3TR } from "@/lib/utils";
+import type { UserRole } from "@/lib/types";
 
-export function DashboardTopbar({ w3trBalance }: { w3trBalance?: number }) {
+export function DashboardTopbar({ role, w3trBalance }: { role: UserRole; w3trBalance?: number }) {
   const { theme, setTheme } = useTheme();
   const { profile } = useAuth();
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-card/80 px-4 backdrop-blur">
-      <Link href="/" className="font-bold text-primary">
-        Web3tribe University
-      </Link>
-
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-border bg-card/80 px-3 backdrop-blur sm:gap-4 sm:px-4">
       <div className="flex items-center gap-2">
+        <MobileNav role={role} />
+        <Link href="/" className="truncate font-bold text-primary">
+          <span className="sm:hidden">W3tribe</span>
+          <span className="hidden sm:inline">Web3tribe University</span>
+        </Link>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
         {typeof w3trBalance === "number" && (
           <Badge variant="accent" className="hidden sm:flex">
             {formatW3TR(w3trBalance)} W3TR

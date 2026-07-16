@@ -14,12 +14,12 @@ export function DashboardShell({
 }) {
   return (
     <div className="flex min-h-screen flex-col">
-      <DashboardTopbar w3trBalance={w3trBalance} />
+      <DashboardTopbar role={role} w3trBalance={w3trBalance} />
       <div className="flex flex-1">
         <aside className="hidden w-64 shrink-0 border-r border-border bg-card md:block">
           <DashboardSidebar role={role} />
         </aside>
-        <main className="flex-1 overflow-x-hidden p-4 md:p-8">{children}</main>
+        <main className="w-full min-w-0 flex-1 overflow-x-hidden p-3 sm:p-4 md:p-8">{children}</main>
       </div>
     </div>
   );
