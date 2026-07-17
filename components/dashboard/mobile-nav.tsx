@@ -3,6 +3,7 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Menu, X } from "lucide-react";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
+import { Logo } from "@/components/logo";
 import type { UserRole } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +39,10 @@ export function MobileNav({ role }: { role: UserRole }) {
           )}
         >
           <div className="flex h-16 items-center justify-between border-b border-border px-4">
-            <span className="font-bold text-primary">Web3tribe University</span>
+            <span className="flex items-center gap-2 font-bold text-primary">
+              <Logo size={28} />
+              Web3tribe University
+            </span>
             <DialogPrimitive.Close asChild>
               <button
                 type="button"

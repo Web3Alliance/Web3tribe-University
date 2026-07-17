@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle, Award } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 
 export const metadata = { title: "Verify Certificate" };
 
@@ -25,7 +26,8 @@ export default async function VerifyCertificatePage({ params }: { params: Promis
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-secondary/40 p-4">
-      <Link href="/" className="text-xl font-bold text-primary">
+      <Link href="/" className="flex items-center gap-2 text-xl font-bold text-primary">
+        <Logo size={36} priority />
         Web3tribe University
       </Link>
       <Card className="w-full max-w-lg">

@@ -1,5 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import QRCode from "qrcode";
+import fs from "fs";
+import path from "path";
 
 export interface CertificateData {
   studentName: string;
@@ -11,9 +13,10 @@ export interface CertificateData {
 }
 
 /**
- * Generates a print-quality certificate PDF (landscape A4) with a QR code linking
- * to the public /verify/[code] page. Returns raw PDF bytes ready to upload to
- * Supabase Storage or stream directly to the client.
+ * Generates a print-quality certificate PDF (landscape A4) with the official
+ * Web3tribe University crest, and a QR code linking to the public
+ * /verify/[code] page. Returns raw PDF bytes ready to upload to Supabase
+ * Storage or stream directly to the client.
  */
 export async function generateCertificatePdf(data: CertificateData): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
@@ -22,10 +25,10 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
 
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
   const fontRegular = await doc.embedFont(StandardFonts.Helvetica);
-  const fontItalic = await doc.embedFont(StandardFonts.HelveticaOblique);
 
-  const navy = rgb(0.06, 0.16, 0.29);
-  const gold = rgb(0.69, 0.55, 0.17);
+  // Brand colors sampled directly from the official crest.
+  const green = rgb(7 / 255, 43 / 255, 20 / 255);
+  const gold = rgb(218 / 255, 165 / 255, 51 / 255);
   const gray = rgb(0.4, 0.4, 0.42);
 
   // Border
@@ -34,7 +37,7 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
     y: 24,
     width: width - 48,
     height: height - 48,
-    borderColor: navy,
+    borderColor: green,
     borderWidth: 3,
   });
   page.drawRectangle({
@@ -46,26 +49,38 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
     borderWidth: 1,
   });
 
-  const centerText = (text: string, y: number, font = fontRegular, size = 14, color = navy) => {
+  const centerText = (text: string, y: number, font = fontRegular, size = 14, color = green) => {
     const textWidth = font.widthOfTextAtSize(text, size);
     page.drawText(text, { x: (width - textWidth) / 2, y, size, font, color });
   };
 
-  centerText("WEB3TRIBE UNIVERSITY", height - 100, fontBold, 22, navy);
-  centerText("Learn. Build. Earn.", height - 125, fontItalic, 12, gray);
+  // Official crest, embedded and centered at the top of the certificate.
+  // Uses a pre-sized 300x300 asset (rather than the full 1075x1075 source
+  // logo) since embedding the full-resolution image to display at 110pt
+  // would needlessly bloat every generated certificate to well over 1MB.
+  const logoPath = path.join(process.cwd(), "public", "logo-certificate.png");
+  const logoBytes = fs.readFileSync(logoPath);
+  const logoImage = await doc.embedPng(logoBytes);
+  const logoSize = 110;
+  page.drawImage(logoImage, {
+    x: (width - logoSize) / 2,
+    y: height - 130,
+    width: logoSize,
+    height: logoSize,
+  });
 
-  centerText("CERTIFICATE OF COMPLETION", height - 180, fontBold, 26, gold);
+  centerText("CERTIFICATE OF COMPLETION", height - 160, fontBold, 24, gold);
 
-  centerText("This certifies that", height - 240, fontRegular, 13, gray);
-  centerText(data.studentName, height - 275, fontBold, 28, navy);
+  centerText("This certifies that", height - 215, fontRegular, 13, gray);
+  centerText(data.studentName, height - 250, fontBold, 28, green);
 
-  centerText("has successfully completed the course", height - 320, fontRegular, 13, gray);
-  centerText(data.courseTitle, height - 355, fontBold, 20, navy);
+  centerText("has successfully completed the course", height - 295, fontRegular, 13, gray);
+  centerText(data.courseTitle, height - 328, fontBold, 20, green);
 
-  centerText(`Instructor: ${data.instructorName}`, height - 400, fontRegular, 12, gray);
+  centerText(`Instructor: ${data.instructorName}`, height - 372, fontRegular, 12, gray);
   centerText(
     `Issued on ${data.issuedAt.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`,
-    height - 420,
+    height - 392,
     fontRegular,
     12,
     gray

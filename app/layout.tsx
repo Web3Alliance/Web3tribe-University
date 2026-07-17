@@ -15,12 +15,20 @@ export const metadata: Metadata = {
   description:
     "Web3tribe University empowers Nigerians with digital skills in AI, cybersecurity, data science, and more — rewarding learners, instructors, and contributors with W3TR as they learn, teach, and build.",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0f" },
+    { media: "(prefers-color-scheme: light)", color: "#072B14" },
+    { media: "(prefers-color-scheme: dark)", color: "#051f0e" },
   ],
   width: "device-width",
   initialScale: 1,

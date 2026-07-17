@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Logo } from "@/components/logo";
 import {
   Brain,
   ShieldCheck,
@@ -39,7 +40,10 @@ export default function LandingPage() {
     <main className="flex flex-col">
       <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between p-4">
-          <span className="text-lg font-bold text-primary">Web3tribe University</span>
+          <span className="flex items-center gap-2 text-lg font-bold text-primary">
+            <Logo size={40} priority />
+            Web3tribe University
+          </span>
           <nav className="flex items-center gap-2">
             <Button variant="ghost" asChild>
               <Link href="/login">Log in</Link>
@@ -53,7 +57,7 @@ export default function LandingPage() {
 
       <section className="border-b border-border bg-gradient-to-b from-secondary/60 to-background px-4 py-20 text-center">
         <Badge variant="accent" className="mb-4">
-          Nigeria&apos;s National Digital Skills Platform
+          Emerging-Tech Skills, Built for Every Community
         </Badge>
         <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
           Learn. Build. <span className="text-primary">Earn.</span>

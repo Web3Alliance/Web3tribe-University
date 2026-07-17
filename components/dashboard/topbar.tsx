@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Logo } from "@/components/logo";
 import { initials, formatW3TR } from "@/lib/utils";
 import type { UserRole } from "@/lib/types";
 
@@ -28,7 +29,8 @@ export function DashboardTopbar({ role, w3trBalance }: { role: UserRole; w3trBal
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-border bg-card/80 px-3 backdrop-blur sm:gap-4 sm:px-4">
       <div className="flex items-center gap-2">
         <MobileNav role={role} />
-        <Link href="/" className="truncate font-bold text-primary">
+        <Link href="/" className="flex items-center gap-2 truncate font-bold text-primary">
+          <Logo size={32} priority />
           <span className="sm:hidden">W3tribe</span>
           <span className="hidden sm:inline">Web3tribe University</span>
         </Link>
