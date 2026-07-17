@@ -2,10 +2,64 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CheckCircle2, PlayCircle, FileText } from "lucide-react";
+import { CheckCircle2, PlayCircle, FileText, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { completeLessonAction } from "@/lib/actions/lessons";
+import { resolveVideoEmbed } from "@/lib/media-embed";
 import type { Lesson } from "@/lib/types";
+
+function LessonMedia({ lesson }: { lesson: Lesson }) {
+  if (lesson.content_type === "video" || lesson.content_type === "embed") {
+    const { type, embedUrl } = resolveVideoEmbed(lesson.content_url);
+
+    if (type === "direct" && embedUrl) {
+      return (
+        <video
+          key={embedUrl}
+          src={embedUrl}
+          controls
+          className="aspect-video w-full rounded-xl bg-black"
+        />
+      );
+    }
+
+    if ((type === "google-drive" || type === "youtube" || type === "vimeo") && embedUrl) {
+      return (
+        <iframe
+          key={embedUrl}
+          src={embedUrl}
+          className="aspect-video w-full rounded-xl border-0 bg-black"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      );
+    }
+
+    // Unknown/unresolvable link — don't render a broken iframe, offer a
+    // plain "open in new tab" fallback instead.
+    if (embedUrl) {
+      return (
+        <div className="flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-xl bg-black/90 text-white">
+          <PlayCircle className="h-16 w-16 opacity-70" />
+          <a
+            href={embedUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 text-sm text-white/80 underline hover:text-white"
+          >
+            <ExternalLink className="h-4 w-4" /> Open video in a new tab
+          </a>
+        </div>
+      );
+    }
+  }
+
+  return (
+    <div className="flex aspect-video w-full items-center justify-center rounded-xl bg-black/90 text-white">
+      <FileText className="h-16 w-16 opacity-70" />
+    </div>
+  );
+}
 
 export function LessonPlayer({
   lesson,
@@ -43,13 +97,7 @@ export function LessonPlayer({
 
   return (
     <div className="space-y-6">
-      <div className="flex aspect-video w-full items-center justify-center rounded-xl bg-black/90 text-white">
-        {lesson.content_type === "video" ? (
-          <PlayCircle className="h-16 w-16 opacity-70" />
-        ) : (
-          <FileText className="h-16 w-16 opacity-70" />
-        )}
-      </div>
+      <LessonMedia lesson={lesson} />
 
       {lesson.content_text && (
         <div className="prose prose-sm dark:prose-invert max-w-none">

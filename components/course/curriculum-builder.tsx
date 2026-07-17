@@ -418,6 +418,13 @@ function AddLessonForm({ courseId, sectionId, onDone }: { courseId: string; sect
             onChange={(e) => setContentUrl(e.target.value)}
             placeholder="https://…"
           />
+          {contentType === "video" && (
+            <p className="text-xs text-muted-foreground">
+              Google Drive videos play inline automatically — just make sure the file&apos;s sharing setting is
+              &quot;Anyone with the link&quot; (Viewer), or students will see an access-denied screen instead of
+              the video.
+            </p>
+          )}
         </div>
       )}
 
