@@ -41,6 +41,33 @@ export async function POST(request: Request) {
   }
   if (!course) return NextResponse.json({ data: null, error: "Course not found." }, { status: 404 });
 
+  // If this course has a final exam, passing it is required before a
+  // certificate can be issued — 100% lesson completion alone isn't enough,
+  // since the final exam is the course's actual capstone assessment.
+  const { data: finalExam } = await supabase
+    .from("quizzes")
+    .select("id")
+    .eq("course_id", courseId)
+    .eq("is_final_exam", true)
+    .maybeSingle();
+
+  if (finalExam) {
+    const { data: passedAttempt } = await supabase
+      .from("quiz_attempts")
+      .select("id")
+      .eq("quiz_id", finalExam.id)
+      .eq("student_id", profile.id)
+      .eq("passed", true)
+      .maybeSingle();
+
+    if (!passedAttempt) {
+      return NextResponse.json(
+        { data: null, error: "Pass the course's final exam before claiming your certificate." },
+        { status: 400 }
+      );
+    }
+  }
+
   const { data: existing } = await supabase
     .from("certificates")
     .select("*")

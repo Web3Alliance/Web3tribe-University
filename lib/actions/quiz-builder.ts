@@ -102,30 +102,59 @@ export async function deleteQuizAction(courseId: string, quizId: string) {
 
 interface AddQuestionInput {
   questionText: string;
-  options: { id: string; text: string }[];
-  correctOptionId: string;
+  questionType: "single_choice" | "short_answer";
+  options?: { id: string; text: string }[];
+  correctOptionId?: string;
+  correctTextAnswer?: string;
 }
 
 export async function addQuizQuestionAction(courseId: string, quizId: string, input: AddQuestionInput) {
   const { ok, supabase } = await assertOwnsCourseOrAdmin(courseId);
   if (!ok || !supabase) return { error: "Not authorized." };
 
-  if (input.options.length < 2) return { error: "A question needs at least 2 options." };
-  if (!input.options.some((o) => o.id === input.correctOptionId)) {
-    return { error: "Correct answer must match one of the provided options." };
+  let insertPayload: {
+    quiz_id: string;
+    question_text: string;
+    question_type: string;
+    options: { id: string; text: string }[] | null;
+    correct_answer: string;
+    points: number;
+    display_order: number;
+  };
+
+  if (input.questionType === "short_answer") {
+    if (!input.correctTextAnswer || !input.correctTextAnswer.trim()) {
+      return { error: "Provide the expected answer for this question." };
+    }
+    insertPayload = {
+      quiz_id: quizId,
+      question_text: input.questionText,
+      question_type: "short_answer",
+      options: null,
+      correct_answer: input.correctTextAnswer.trim(),
+      points: 1,
+      display_order: 0,
+    };
+  } else {
+    if (!input.options || input.options.length < 2) return { error: "A question needs at least 2 options." };
+    if (!input.options.some((o) => o.id === input.correctOptionId)) {
+      return { error: "Correct answer must match one of the provided options." };
+    }
+    insertPayload = {
+      quiz_id: quizId,
+      question_text: input.questionText,
+      question_type: "single_choice",
+      options: input.options,
+      correct_answer: input.correctOptionId!,
+      points: 1,
+      display_order: 0,
+    };
   }
 
   const { count } = await supabase.from("quiz_questions").select("*", { count: "exact", head: true }).eq("quiz_id", quizId);
+  insertPayload.display_order = (count ?? 0) + 1;
 
-  const { error } = await supabase.from("quiz_questions").insert({
-    quiz_id: quizId,
-    question_text: input.questionText,
-    question_type: "single_choice",
-    options: input.options,
-    correct_answer: input.correctOptionId,
-    points: 1,
-    display_order: (count ?? 0) + 1,
-  });
+  const { error } = await supabase.from("quiz_questions").insert(insertPayload);
   if (error) return { error: error.message };
 
   const { data: quiz } = await supabase.from("quizzes").select("lesson_id, courses(slug)").eq("id", quizId).maybeSingle();

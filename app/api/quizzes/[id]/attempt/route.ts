@@ -1,19 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/rbac";
 import { getRewardEngine } from "@/lib/reward-engine";
+import { gradeQuizAttempt } from "@/lib/quiz-grading";
 
 interface SubmitQuizBody {
   answers: Record<string, unknown>;
-}
-
-function isAnswerCorrect(question: { question_type: string; correct_answer: unknown }, given: unknown): boolean {
-  if (question.question_type === "multiple_choice") {
-    const correct = new Set((question.correct_answer as string[]) ?? []);
-    const givenArr = new Set((given as string[]) ?? []);
-    return correct.size === givenArr.size && [...correct].every((c) => givenArr.has(c));
-  }
-  return JSON.stringify(question.correct_answer) === JSON.stringify(given);
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -37,16 +30,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ data: null, error: "Maximum attempts reached for this quiz." }, { status: 400 });
   }
 
-  const { data: questions } = await supabase.from("quiz_questions").select("*").eq("quiz_id", quizId);
+  // quiz_questions (and especially correct_answer) is intentionally locked
+  // down by RLS to instructors/admins only, so students can't read answers
+  // ahead of time by querying the table directly. That's exactly why grading
+  // must use the admin client here — using the student's own session (as
+  // this route did before) silently returned zero rows, which is what
+  // caused every attempt to be scored as 0% regardless of what was actually
+  // answered.
+  const admin = createAdminClient();
+  const { data: questions } = await admin.from("quiz_questions").select("*").eq("quiz_id", quizId);
 
-  let totalPoints = 0;
-  let earnedPoints = 0;
-  for (const q of questions ?? []) {
-    totalPoints += Number(q.points);
-    if (isAnswerCorrect(q, body.answers[q.id])) earnedPoints += Number(q.points);
-  }
-  const scorePercent = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
-  const passed = scorePercent >= Number(quiz.passing_score_percent);
+  const { scorePercent, passed, perQuestionResults } = gradeQuizAttempt(
+    questions ?? [],
+    body.answers,
+    Number(quiz.passing_score_percent)
+  );
 
   const { data: attempt, error } = await supabase
     .from("quiz_attempts")
@@ -76,5 +74,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     );
   }
 
-  return NextResponse.json({ data: { attempt, scorePercent, passed }, error: null });
+  // Once an attempt is graded (pass or fail), the student can see the
+  // correct answers for review — the platform's aim is for students to
+  // actually learn from a wrong answer, not just receive a score. This is
+  // safe to send only now, after grading, never before a question has been
+  // attempted.
+  const correctAnswers = (questions ?? []).reduce<Record<string, unknown>>((acc, q) => {
+    acc[q.id] = q.correct_answer;
+    return acc;
+  }, {});
+
+  return NextResponse.json({
+    data: { attempt, scorePercent, passed, perQuestionResults, correctAnswers },
+    error: null,
+  });
 }

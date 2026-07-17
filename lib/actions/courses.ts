@@ -190,11 +190,19 @@ export async function submitCourseForReviewAction(courseId: string) {
   // since lesson completion (and its W3TR reward) requires passing that quiz.
   const { data: quizzes } = await supabase
     .from("quizzes")
-    .select("id, lesson_id, quiz_questions(id)")
-    .eq("course_id", courseId)
-    .eq("is_final_exam", false);
+    .select("id, lesson_id, is_final_exam, quiz_questions(id)")
+    .eq("course_id", courseId);
 
-  const quizByLessonId = new Map((quizzes ?? []).map((q) => [q.lesson_id, q]));
+  const lessonQuizzes = (quizzes ?? []).filter((q) => !q.is_final_exam);
+  const finalExam = (quizzes ?? []).find((q) => q.is_final_exam);
+
+  if (finalExam && (finalExam.quiz_questions?.length ?? 0) < 50) {
+    return {
+      error: `The final exam needs at least 50 questions before this course can be submitted (currently has ${finalExam.quiz_questions?.length ?? 0}).`,
+    };
+  }
+
+  const quizByLessonId = new Map(lessonQuizzes.map((q) => [q.lesson_id, q]));
   const lessonsMissingQuiz = allLessons.filter((l) => {
     const quiz = quizByLessonId.get(l.id);
     return !quiz || !quiz.quiz_questions || quiz.quiz_questions.length === 0;

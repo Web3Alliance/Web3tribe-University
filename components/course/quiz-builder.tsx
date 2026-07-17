@@ -23,6 +23,7 @@ interface QuizBuilderProps {
 export function QuizBuilder({ courseId, quizId, quizTitle, isFinalExam, questions }: QuizBuilderProps) {
   const [isPending, startTransition] = React.useTransition();
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const belowFinalExamMinimum = isFinalExam && questions.length < 50;
 
   function handleDeleteQuiz() {
     if (!confirm(`Delete "${quizTitle}"? All its questions will be removed too.`)) return;
@@ -40,9 +41,23 @@ export function QuizBuilder({ courseId, quizId, quizTitle, isFinalExam, question
             {quizTitle}
           </CardTitle>
           <p className="text-xs text-muted-foreground">
-            {questions.length} question{questions.length === 1 ? "" : "s"} · pass at {TOKENOMICS.DEFAULT_PASSING_SCORE_PERCENT}% ·
+            {questions.length} question{questions.length === 1 ? "" : "s"} · each question is weighted equally
+            (a {questions.length || 1}-question {isFinalExam ? "exam" : "quiz"} = {Math.round(100 / (questions.length || 1))}%
+            per question) · pass at {TOKENOMICS.DEFAULT_PASSING_SCORE_PERCENT}% ·
             reward {isFinalExam ? TOKENOMICS.FINAL_EXAM_PASS_REWARD : TOKENOMICS.LESSON_QUIZ_PASS_REWARD} W3TR · unlimited retakes
           </p>
+          {isFinalExam ? (
+            belowFinalExamMinimum ? (
+              <p className="mt-1 text-xs font-medium text-destructive">
+                Final exams need at least 50 questions before the course can be submitted for review
+                ({questions.length}/50 so far).
+              </p>
+            ) : (
+              <p className="mt-1 text-xs font-medium text-success">Meets the 50-question minimum for final exams.</p>
+            )
+          ) : (
+            <p className="mt-1 text-xs text-muted-foreground">Recommended: around 5 questions per lesson quiz.</p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -78,12 +93,18 @@ function QuestionRow({ courseId, question, index }: { courseId: string; question
   const [isPending, startTransition] = React.useTransition();
   const options = (question.options as { id: string; text: string }[]) ?? [];
   const correctId = question.correct_answer as unknown as string;
+  const isShortAnswer = question.question_type === "short_answer";
 
   return (
     <div className="rounded-md border border-border p-3 text-sm">
       <div className="flex items-start justify-between gap-2">
         <p className="font-medium">
           {index}. {question.question_text}
+          {isShortAnswer && (
+            <span className="ml-2 rounded bg-secondary px-1.5 py-0.5 text-xs font-normal text-muted-foreground">
+              Subjective
+            </span>
+          )}
         </p>
         <Button
           size="icon"
@@ -95,20 +116,28 @@ function QuestionRow({ courseId, question, index }: { courseId: string; question
           <Trash2 className="h-3.5 w-3.5 text-destructive" />
         </Button>
       </div>
-      <ul className="mt-2 space-y-1 pl-4">
-        {options.map((o) => (
-          <li key={o.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            {o.id === correctId && <CheckCircle2 className="h-3 w-3 text-success" />}
-            {o.text}
-          </li>
-        ))}
-      </ul>
+      {isShortAnswer ? (
+        <p className="mt-2 flex items-center gap-1.5 pl-4 text-xs text-muted-foreground">
+          <CheckCircle2 className="h-3 w-3 text-success" />
+          Expected answer: <span className="font-medium text-foreground">{String(question.correct_answer)}</span>
+        </p>
+      ) : (
+        <ul className="mt-2 space-y-1 pl-4">
+          {options.map((o) => (
+            <li key={o.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              {o.id === correctId && <CheckCircle2 className="h-3 w-3 text-success" />}
+              {o.text}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
 function AddQuestionForm({ courseId, quizId, onDone }: { courseId: string; quizId: string; onDone: () => void }) {
   const [isPending, startTransition] = React.useTransition();
+  const [questionType, setQuestionType] = React.useState<"single_choice" | "short_answer">("single_choice");
   const [options, setOptions] = React.useState([
     { id: "a", text: "" },
     { id: "b", text: "" },
@@ -116,6 +145,7 @@ function AddQuestionForm({ courseId, quizId, onDone }: { courseId: string; quizI
     { id: "d", text: "" },
   ]);
   const [correctId, setCorrectId] = React.useState("a");
+  const [correctTextAnswer, setCorrectTextAnswer] = React.useState("");
 
   function updateOption(id: string, text: string) {
     setOptions((prev) => prev.map((o) => (o.id === id ? { ...o, text } : o)));
@@ -123,12 +153,32 @@ function AddQuestionForm({ courseId, quizId, onDone }: { courseId: string; quizI
 
   function handleSubmit(formData: FormData) {
     const questionText = String(formData.get("questionText") || "");
-    const filledOptions = options.filter((o) => o.text.trim().length > 0);
-
     if (!questionText.trim()) {
       toast.error("Question text is required.");
       return;
     }
+
+    if (questionType === "short_answer") {
+      if (!correctTextAnswer.trim()) {
+        toast.error("Provide the expected answer.");
+        return;
+      }
+      startTransition(async () => {
+        const res = await addQuizQuestionAction(courseId, quizId, {
+          questionText,
+          questionType: "short_answer",
+          correctTextAnswer,
+        });
+        if (res?.error) toast.error(res.error);
+        else {
+          toast.success("Question added.");
+          onDone();
+        }
+      });
+      return;
+    }
+
+    const filledOptions = options.filter((o) => o.text.trim().length > 0);
     if (filledOptions.length < 2) {
       toast.error("Provide at least 2 answer options.");
       return;
@@ -137,6 +187,7 @@ function AddQuestionForm({ courseId, quizId, onDone }: { courseId: string; quizI
     startTransition(async () => {
       const res = await addQuizQuestionAction(courseId, quizId, {
         questionText,
+        questionType: "single_choice",
         options: filledOptions,
         correctOptionId: correctId,
       });
@@ -156,21 +207,55 @@ function AddQuestionForm({ courseId, quizId, onDone }: { courseId: string; quizI
       </div>
 
       <div className="space-y-2">
-        <Label>Answer options (select the correct one)</Label>
-        <RadioGroup value={correctId} onValueChange={setCorrectId} className="space-y-2">
-          {options.map((o) => (
-            <div key={o.id} className="flex items-center gap-2">
-              <RadioGroupItem value={o.id} id={`opt-${o.id}`} />
-              <Input
-                placeholder={`Option ${o.id.toUpperCase()}`}
-                value={o.text}
-                onChange={(e) => updateOption(o.id, e.target.value)}
-              />
-            </div>
-          ))}
+        <Label>Question type</Label>
+        <RadioGroup
+          value={questionType}
+          onValueChange={(v) => setQuestionType(v as "single_choice" | "short_answer")}
+          className="flex gap-4"
+        >
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <RadioGroupItem value="single_choice" id="type-choice" />
+            Multiple choice
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <RadioGroupItem value="short_answer" id="type-subjective" />
+            Subjective (short answer)
+          </label>
         </RadioGroup>
-        <p className="text-xs text-muted-foreground">The selected radio button marks the correct answer.</p>
       </div>
+
+      {questionType === "single_choice" ? (
+        <div className="space-y-2">
+          <Label>Answer options (select the correct one)</Label>
+          <RadioGroup value={correctId} onValueChange={setCorrectId} className="space-y-2">
+            {options.map((o) => (
+              <div key={o.id} className="flex items-center gap-2">
+                <RadioGroupItem value={o.id} id={`opt-${o.id}`} />
+                <Input
+                  placeholder={`Option ${o.id.toUpperCase()}`}
+                  value={o.text}
+                  onChange={(e) => updateOption(o.id, e.target.value)}
+                />
+              </div>
+            ))}
+          </RadioGroup>
+          <p className="text-xs text-muted-foreground">The selected radio button marks the correct answer.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Label htmlFor="correctTextAnswer">Expected answer</Label>
+          <Input
+            id="correctTextAnswer"
+            value={correctTextAnswer}
+            onChange={(e) => setCorrectTextAnswer(e.target.value)}
+            placeholder="e.g. Lagos"
+          />
+          <p className="text-xs text-muted-foreground">
+            Graded with a lenient match (ignores case, punctuation, and extra spacing) — good for short factual
+            answers. Not suited to grading long-form essay responses.
+          </p>
+        </div>
+      )}
 
       <Button type="submit" disabled={isPending} className="w-full">
         {isPending ? "Adding…" : "Add question"}
