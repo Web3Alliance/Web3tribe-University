@@ -8,12 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileUploadField } from "@/components/course/file-upload-field";
 import type { Category, Course } from "@/lib/types";
 
 export function CourseDetailsForm({ course, categories }: { course: Course; categories: Category[] }) {
   const [isPending, startTransition] = React.useTransition();
+  const [thumbnailUrl, setThumbnailUrl] = React.useState(course.thumbnail_url ?? "");
 
   function handleSubmit(formData: FormData) {
+    formData.set("thumbnailUrl", thumbnailUrl);
     startTransition(async () => {
       const res = await updateCourseDetailsAction(course.id, formData);
       if (res.error) toast.error(res.error);
@@ -28,6 +31,29 @@ export function CourseDetailsForm({ course, categories }: { course: Course; cate
       </CardHeader>
       <CardContent>
         <form action={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>
+              Cover image <span className="text-destructive">*</span>
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Required before this course can be submitted for review — this is what students see on the course
+              catalog and detail page.
+            </p>
+            {thumbnailUrl && (
+              // eslint-disable-next-line @next/next/no-img-element -- instructor-provided cover images come from arbitrary Supabase Storage URLs, not a fixed local asset set
+              <img
+                src={thumbnailUrl}
+                alt="Course cover preview"
+                className="aspect-video w-full max-w-sm rounded-lg border border-border object-cover"
+              />
+            )}
+            <FileUploadField
+              bucket="course-images"
+              accept="image/png,image/jpeg,image/webp"
+              label={thumbnailUrl ? "Replace cover image" : "Upload a cover image"}
+              onUploaded={(url) => setThumbnailUrl(url)}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input id="title" name="title" defaultValue={course.title} required />

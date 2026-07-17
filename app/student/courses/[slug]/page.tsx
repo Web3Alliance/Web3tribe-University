@@ -178,7 +178,16 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
 
         <div className="space-y-4">
           <Card className="sticky top-20">
-            <div className="aspect-video w-full rounded-t-xl bg-gradient-to-br from-primary/30 to-accent/30" />
+            {course.thumbnail_url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- course covers come from arbitrary instructor-uploaded Supabase Storage URLs
+              <img
+                src={course.thumbnail_url}
+                alt={course.title}
+                className="aspect-video w-full rounded-t-xl object-cover"
+              />
+            ) : (
+              <div className="aspect-video w-full rounded-t-xl bg-gradient-to-br from-primary/30 to-accent/30" />
+            )}
             <CardContent className="space-y-4 p-6">
               <p className="text-2xl font-bold">{course.price_w3tr > 0 ? `${course.price_w3tr} W3TR` : "Free"}</p>
               <div className="flex gap-2">

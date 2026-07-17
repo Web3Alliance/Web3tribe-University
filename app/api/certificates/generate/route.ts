@@ -14,6 +14,17 @@ export async function POST(request: Request) {
 
   const { courseId } = (await request.json()) as GenerateCertBody;
   const supabase = await createClient();
+  // Certificate rows are written with the admin (service-role) client rather
+  // than the student's own RLS-enforced session. This route already fully
+  // validates entitlement below (a genuinely completed enrollment, matched
+  // course/student) before writing anything, so this isn't opening up
+  // anything students couldn't already legitimately claim — it just avoids
+  // needing a parallel INSERT/UPDATE RLS policy that would have to
+  // re-implement (and stay in sync with) the same checks in SQL. Certificates
+  // intentionally have no student-facing insert/update RLS policy at all,
+  // so any write that reaches the table this way is guaranteed to have gone
+  // through this validation first.
+  const admin = createAdminClient();
 
   const [{ data: enrollment }, { data: course }] = await Promise.all([
     supabase
@@ -41,7 +52,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ data: existing, error: null });
   }
 
-  const { data: created, error: insertError } = await supabase
+  const { data: created, error: insertError } = await admin
     .from("certificates")
     .insert({
       student_id: profile.id,
@@ -70,7 +81,6 @@ export async function POST(request: Request) {
     verificationUrl,
   });
 
-  const admin = createAdminClient();
   const filePath = `certificates/${created.certificate_code}.pdf`;
   const { error: uploadError } = await admin.storage.from("certificates").upload(filePath, Buffer.from(pdfBytes), {
     contentType: "application/pdf",
@@ -79,7 +89,7 @@ export async function POST(request: Request) {
 
   if (!uploadError) {
     const { data: publicUrl } = admin.storage.from("certificates").getPublicUrl(filePath);
-    await supabase
+    await admin
       .from("certificates")
       .update({ pdf_url: publicUrl.publicUrl, qr_verification_url: verificationUrl })
       .eq("id", created.id);

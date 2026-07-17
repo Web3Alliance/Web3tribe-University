@@ -71,6 +71,7 @@ export async function updateCourseDetailsAction(courseId: string, formData: Form
   const categoryId = String(formData.get("categoryId") || "") || null;
   const priceW3tr = Number(formData.get("priceW3tr") || 0);
   const estimatedHours = formData.get("estimatedHours") ? Number(formData.get("estimatedHours")) : null;
+  const thumbnailUrl = String(formData.get("thumbnailUrl") || "") || null;
   const requirements = String(formData.get("requirements") || "")
     .split("\n")
     .map((s) => s.trim())
@@ -90,6 +91,7 @@ export async function updateCourseDetailsAction(courseId: string, formData: Form
       category_id: categoryId,
       price_w3tr: priceW3tr,
       estimated_hours: estimatedHours,
+      thumbnail_url: thumbnailUrl,
       requirements,
       learning_outcomes: learningOutcomes,
     })
@@ -168,6 +170,11 @@ export async function deleteLessonAction(courseId: string, lessonId: string) {
 export async function submitCourseForReviewAction(courseId: string) {
   const { ok, supabase, profile } = await assertOwnsCourseOrAdmin(courseId);
   if (!ok || !supabase) return { error: "Not authorized." };
+
+  const { data: courseCheck } = await supabase.from("courses").select("thumbnail_url").eq("id", courseId).single();
+  if (!courseCheck?.thumbnail_url) {
+    return { error: "Add a cover image before submitting this course for review." };
+  }
 
   const { data: sections } = await supabase
     .from("course_sections")

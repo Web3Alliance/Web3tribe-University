@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/rbac";
 import { LessonPlayer } from "@/components/course/lesson-player";
 import { LessonQuizPlayer } from "@/components/course/lesson-quiz-player";
@@ -26,15 +27,34 @@ export default async function LearnLessonPage({ params }: { params: Promise<{ le
 
   if (!enrollment) redirect(`/student/courses/${lesson.course?.slug}`);
 
-  const [{ data: sections }, { data: progressRows }, { data: lessonQuiz }] = await Promise.all([
+  // Quiz questions are intentionally restricted by RLS to instructors/admins
+  // only (students querying the table directly must never see
+  // correct_answer). We already independently verified above that this
+  // student is genuinely enrolled in this course, so it's safe to use the
+  // admin client here to actually fetch the quiz — we just have to strip
+  // correct_answer ourselves before this ever reaches the client component,
+  // since anything passed as a prop to a Client Component is visible in the
+  // browser's dev tools / view-source.
+  const admin = createAdminClient();
+  const [{ data: sections }, { data: progressRows }, { data: lessonQuizRaw }] = await Promise.all([
     supabase
       .from("course_sections")
       .select("*, lessons(id,title,display_order,content_type)")
       .eq("course_id", lesson.course_id)
       .order("display_order"),
     supabase.from("lesson_progress").select("lesson_id,is_completed").eq("enrollment_id", enrollment.id),
-    supabase.from("quizzes").select("*, quiz_questions(*)").eq("lesson_id", lessonId).maybeSingle(),
+    admin.from("quizzes").select("*, quiz_questions(*)").eq("lesson_id", lessonId).maybeSingle(),
   ]);
+
+  const lessonQuiz = lessonQuizRaw
+    ? {
+        ...lessonQuizRaw,
+        quiz_questions: (lessonQuizRaw.quiz_questions ?? []).map(
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars -- intentionally destructured out to strip this field before it reaches the client
+          ({ correct_answer: _correctAnswer, ...rest }: { correct_answer: unknown; [key: string]: unknown }) => rest
+        ),
+      }
+    : null;
 
   let lastAttempt: { score_percent: number; passed: boolean } | null = null;
   if (lessonQuiz) {

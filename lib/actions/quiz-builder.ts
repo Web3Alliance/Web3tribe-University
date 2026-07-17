@@ -13,6 +13,17 @@ async function assertOwnsCourseOrAdmin(courseId: string) {
   return { profile, ok, supabase };
 }
 
+/** Revalidates every page a student could be viewing this quiz/question from.
+ * Quiz-related actions previously only revalidated the instructor's edit
+ * page — meaning a student who had already loaded a lesson page before a
+ * quiz (or its questions) were added could keep seeing a stale, quiz-less
+ * version of that page indefinitely, since nothing ever told Next.js that
+ * page's cached data was now out of date. */
+function revalidateStudentFacingPaths(courseSlug: string | null, lessonId: string | null) {
+  if (lessonId) revalidatePath(`/student/learn/${lessonId}`);
+  if (courseSlug) revalidatePath(`/student/courses/${courseSlug}`);
+}
+
 /**
  * Creates a quiz tied to a specific lesson. Passing score and reward are fixed
  * platform-wide (see lib/tokenomics.ts) — instructors only supply the title.
@@ -38,6 +49,7 @@ export async function addLessonQuizAction(courseId: string, lessonId: string, ti
   if (error) return { error: error.message };
 
   revalidatePath(`/instructor/courses/${courseId}/edit`);
+  revalidatePath(`/student/learn/${lessonId}`);
   return { error: null };
 }
 
@@ -67,15 +79,24 @@ export async function addFinalExamAction(courseId: string, title: string) {
   });
   if (error) return { error: error.message };
 
+  const { data: course } = await supabase.from("courses").select("slug").eq("id", courseId).single();
   revalidatePath(`/instructor/courses/${courseId}/edit`);
+  if (course?.slug) revalidatePath(`/student/courses/${course.slug}`);
   return { error: null };
 }
 
 export async function deleteQuizAction(courseId: string, quizId: string) {
   const { ok, supabase } = await assertOwnsCourseOrAdmin(courseId);
   if (!ok || !supabase) return { error: "Not authorized." };
+
+  const { data: quiz } = await supabase.from("quizzes").select("lesson_id, courses(slug)").eq("id", quizId).maybeSingle();
+  const courseSlug = (quiz?.courses as { slug: string } | { slug: string }[] | null | undefined) instanceof Array
+    ? (quiz?.courses as { slug: string }[])[0]?.slug
+    : (quiz?.courses as { slug: string } | null | undefined)?.slug;
+
   await supabase.from("quizzes").delete().eq("id", quizId);
   revalidatePath(`/instructor/courses/${courseId}/edit`);
+  revalidateStudentFacingPaths(courseSlug ?? null, quiz?.lesson_id ?? null);
   return { error: null };
 }
 
@@ -107,14 +128,34 @@ export async function addQuizQuestionAction(courseId: string, quizId: string, in
   });
   if (error) return { error: error.message };
 
+  const { data: quiz } = await supabase.from("quizzes").select("lesson_id, courses(slug)").eq("id", quizId).maybeSingle();
+  const courseSlug = (quiz?.courses as { slug: string } | { slug: string }[] | null | undefined) instanceof Array
+    ? (quiz?.courses as { slug: string }[])[0]?.slug
+    : (quiz?.courses as { slug: string } | null | undefined)?.slug;
+
   revalidatePath(`/instructor/courses/${courseId}/edit`);
+  revalidateStudentFacingPaths(courseSlug ?? null, quiz?.lesson_id ?? null);
   return { error: null };
 }
 
 export async function deleteQuizQuestionAction(courseId: string, questionId: string) {
   const { ok, supabase } = await assertOwnsCourseOrAdmin(courseId);
   if (!ok || !supabase) return { error: "Not authorized." };
+
+  const { data: question } = await supabase
+    .from("quiz_questions")
+    .select("quiz_id, quizzes(lesson_id, courses(slug))")
+    .eq("id", questionId)
+    .maybeSingle();
+  const quiz = (question?.quizzes as { lesson_id: string; courses: { slug: string } | { slug: string }[] } | { lesson_id: string; courses: { slug: string } | { slug: string }[] }[] | null | undefined) instanceof Array
+    ? (question?.quizzes as { lesson_id: string; courses: { slug: string } | { slug: string }[] }[])[0]
+    : (question?.quizzes as { lesson_id: string; courses: { slug: string } | { slug: string }[] } | null | undefined);
+  const courseSlug = (quiz?.courses as { slug: string } | { slug: string }[] | null | undefined) instanceof Array
+    ? (quiz?.courses as { slug: string }[])[0]?.slug
+    : (quiz?.courses as { slug: string } | null | undefined)?.slug;
+
   await supabase.from("quiz_questions").delete().eq("id", questionId);
   revalidatePath(`/instructor/courses/${courseId}/edit`);
+  revalidateStudentFacingPaths(courseSlug ?? null, quiz?.lesson_id ?? null);
   return { error: null };
 }

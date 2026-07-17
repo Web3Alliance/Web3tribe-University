@@ -8,7 +8,16 @@ export function CourseCard({ course }: { course: Course }) {
   return (
     <Card className="flex flex-col overflow-hidden transition-shadow hover:shadow-md">
       <Link href={`/student/courses/${course.slug}`}>
-        <div className="aspect-video w-full bg-gradient-to-br from-primary/20 to-accent/20" />
+        {course.thumbnail_url ? (
+          // eslint-disable-next-line @next/next/no-img-element -- course covers come from arbitrary instructor-uploaded Supabase Storage URLs
+          <img
+            src={course.thumbnail_url}
+            alt={course.title}
+            className="aspect-video w-full object-cover"
+          />
+        ) : (
+          <div className="aspect-video w-full bg-gradient-to-br from-primary/20 to-accent/20" />
+        )}
       </Link>
       <CardHeader className="flex-1 pb-2">
         <div className="mb-1 flex flex-wrap gap-1">
