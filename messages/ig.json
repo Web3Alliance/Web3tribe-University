@@ -1,0 +1,64 @@
+{
+  "common": {
+    "login": "Banye",
+    "signup": "Debanye Aha",
+    "logout": "Pụọ",
+    "save": "Chekwaa",
+    "cancel": "Kagbuo",
+    "continue": "Gaa n'ihu",
+    "loading": "Na-ebu…",
+    "submit": "Zipu",
+    "back": "Azụ",
+    "next": "Ọzọ",
+    "search": "Chọọ"
+  },
+  "nav": {
+    "dashboard": "Ihu Njikwa",
+    "browseCourses": "Chọọ Ọmụmụ",
+    "myCourses": "Ọmụmụ M",
+    "wishlist": "Ndepụta Ọchịchọ",
+    "wallet": "Akpa Ego W3TR",
+    "certificates": "Akwụkwọ Àkàebe",
+    "leaderboard": "Ndepụta Ndị Kacha Mma",
+    "notifications": "Ọkwa",
+    "settings": "Ntọala",
+    "createCourse": "Mepụta Ọmụmụ",
+    "analytics": "Nyocha Data"
+  },
+  "landing": {
+    "tagline": "Nka Teknụzụ Ọhụrụ, Emere Maka Obodo Ọ Bụla",
+    "heroLine1": "Mụta. Wuo.",
+    "heroLine2": "Rite Ụgwọ.",
+    "heroSubtitle": "Mụta nka dijitalụ a chọrọ ugbu a — AI, nchekwa ịntanetị, sayensị data, na ndị ọzọ — ma nweta ụgwọ ọrụ W3TR ka ị na-amụ, na-akụzi, ma na-enye aka.",
+    "startLearningFree": "Malite ịmụ n'efu",
+    "browseCourses": "Chọọ Ọmụmụ",
+    "categoriesHeading": "Chọpụta Ụdị Nka",
+    "howItWorksHeading": "Otu Mahadum Web3tribe Si Arụ Ọrụ",
+    "step1Title": "Mụta",
+    "step1Body": "Mụta ọmụmụ ndị ọká gosipụtara n'ekwentị gị n'ụdị nka dijitalụ a chọrọ ugbu a.",
+    "step2Title": "Wuo",
+    "step2Body": "Mechaa ọrụ, ule, na ọrụ e nyere gị nke na-egosi ezigbo nkà ị nwere maka ọrụ.",
+    "step3Title": "Rite Ụgwọ",
+    "step3Body": "Nweta ụgwọ ọrụ W3TR na asambodo enyere gị aka nyochaa ka ị na-aga n'ihu — ihe akaebe ndị nna ụlọ ọrụ nwere ike ịtụkwasị obi.",
+    "ctaHeading": "Ị dịla njikere iwu ọdịnihu gị?",
+    "ctaSubtitle": "Sonyere puku ndị Naịjirịa na-amụ nka teknụzụ ọhụrụ — ọ bụ n'efu ka ọ na-amalite.",
+    "ctaButton": "Mepụta akaụntụ gị n'efu"
+  },
+  "auth": {
+    "welcomeBack": "Nnọọ Ọzọ",
+    "loginSubtitle": "Banye ka ị gaa n'ihu na-amụ, na-akụzi, ma na-enweta W3TR.",
+    "continueWithGoogle": "Gaa n'ihu na Google",
+    "orContinueWithEmail": "Ma ọ bụ jiri ozi-e gaa n'ihu",
+    "email": "Email",
+    "password": "Okwuntughe",
+    "forgotPassword": "Ị chefuru okwuntughe gị?",
+    "noAccount": "Ị nweghị akaụntụ?",
+    "createAccount": "Mepụta Akaụntụ Gị",
+    "registerSubtitle": "Sonyere obodo mba nke ndị na-amụ, ndị nkụzi, na ndị na-ewu ihe.",
+    "fullName": "Aha Zuru Ezu",
+    "alreadyHaveAccount": "Ị nweralarị akaụntụ?"
+  },
+  "languageSwitcher": {
+    "label": "Asụsụ"
+  }
+}

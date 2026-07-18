@@ -1,0 +1,64 @@
+{
+  "common": {
+    "login": "Wọlé",
+    "signup": "Forúkọsílẹ̀",
+    "logout": "Jáde",
+    "save": "Fi pamọ́",
+    "cancel": "Fagilé",
+    "continue": "Tẹ̀síwájú",
+    "loading": "Ẹ jọ̀wọ́ dúró…",
+    "submit": "Fi ránṣẹ́",
+    "back": "Padà",
+    "next": "Tókàn",
+    "search": "Wá"
+  },
+  "nav": {
+    "dashboard": "Pátákò Iṣàkóso",
+    "browseCourses": "Wá Àwọn Ẹ̀kọ́",
+    "myCourses": "Àwọn Ẹ̀kọ́ Mi",
+    "wishlist": "Àtòjọ Ìfẹ́",
+    "wallet": "Àpamọ́wọ́ W3TR",
+    "certificates": "Ìwé-ẹ̀rí",
+    "leaderboard": "Àtòjọ Olórí",
+    "notifications": "Ìkéde",
+    "settings": "Ètò",
+    "createCourse": "Ṣẹ̀dá Ẹ̀kọ́",
+    "analytics": "Ìtúpalẹ̀ Dátà"
+  },
+  "landing": {
+    "tagline": "Ìmọ̀-ẹ̀rọ Tuntun, Tí A Kọ́ Fún Gbogbo Àdúgbò",
+    "heroLine1": "Kọ́ Ìmọ̀.",
+    "heroLine2": "Jèrè Ère.",
+    "heroSubtitle": "Kọ́ àwọn ìmọ̀-ẹ̀rọ tí a nílò lónìí — AI, ààbò ayélujára, ìmọ̀ dátà, àti bẹ́ẹ̀ bẹ́ẹ̀ lọ — kí o sì gba èrè W3TR bí o ṣe ń kọ́, ń kọ́ni, tí o sì ń ṣe ìrànlọ́wọ́.",
+    "startLearningFree": "Bẹ̀rẹ̀ kíkọ́ ní ọ̀fẹ́",
+    "browseCourses": "Wá Àwọn Ẹ̀kọ́",
+    "categoriesHeading": "Wá Àwọn Ẹ̀ka Ẹ̀kọ́",
+    "howItWorksHeading": "Bí Yunifásítì Web3tribe Ṣe Ń Ṣiṣẹ́",
+    "step1Title": "Kọ́",
+    "step1Body": "Ṣe àwọn ẹ̀kọ́ olùkọ́ tí a fọwọ́sí lórí fóònù rẹ ní àwọn ìmọ̀-ẹ̀rọ tí a nílò lónìí.",
+    "step2Title": "Ṣe",
+    "step2Body": "Parí àwọn iṣẹ́, àdánwò, àti àwọn iṣẹ́-àṣetiléwá tí ó fi ẹ̀rí ìmọ̀ tòótọ́ hàn.",
+    "step3Title": "Jèrè",
+    "step3Body": "Jèrè èrè W3TR àti ẹ̀rí ìwé-ẹ̀rí tí a lè fọwọ́sí bí o ṣe ń tẹ̀síwájú — ẹ̀rí tí àwọn agbanisíṣẹ́ lè gbẹ́kẹ̀lé.",
+    "ctaHeading": "Ṣé o ti ṣetán láti kọ́ ọjọ́ ọ̀la rẹ?",
+    "ctaSubtitle": "Darapọ̀ mọ́ ẹgbẹẹgbẹ̀rún ọmọ Nàìjíríà tí ń kọ́ àwọn ìmọ̀-ẹ̀rọ tuntun — ọ̀fẹ́ ni láti bẹ̀rẹ̀.",
+    "ctaButton": "Ṣẹ̀dá àkántì rẹ ní ọ̀fẹ́"
+  },
+  "auth": {
+    "welcomeBack": "Káàbọ̀ Padà",
+    "loginSubtitle": "Wọlé láti tẹ̀síwájú kíkọ́, kíkọ́ni, àti jíjèrè W3TR.",
+    "continueWithGoogle": "Tẹ̀síwájú pẹ̀lú Google",
+    "orContinueWithEmail": "Tàbí tẹ̀síwájú pẹ̀lú ímeèlì",
+    "email": "Ímeèlì",
+    "password": "Ọ̀rọ̀ Ìpamọ́",
+    "forgotPassword": "Ṣé o gbàgbé ọ̀rọ̀ ìpamọ́ rẹ?",
+    "noAccount": "O kò ì tí ì ní àkántì?",
+    "createAccount": "Ṣẹ̀dá Àkántì Rẹ",
+    "registerSubtitle": "Darapọ̀ mọ́ àdúgbò orílẹ̀-èdè ti àwọn akẹ́kọ̀ọ́, olùkọ́, àti àwọn tí ń kọ́.",
+    "fullName": "Orúkọ Kíkún",
+    "alreadyHaveAccount": "Ṣé o ti ní àkántì?"
+  },
+  "languageSwitcher": {
+    "label": "Èdè"
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "common": {
+    "login": "Log in",
+    "signup": "Sign up",
+    "logout": "Log out",
+    "save": "Save",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "loading": "Loading…",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "browseCourses": "Browse Courses",
+    "myCourses": "My Courses",
+    "wishlist": "Wishlist",
+    "wallet": "W3TR Wallet",
+    "certificates": "Certificates",
+    "leaderboard": "Leaderboard",
+    "notifications": "Notifications",
+    "settings": "Settings",
+    "createCourse": "Create Course",
+    "analytics": "Analytics"
+  },
+  "landing": {
+    "tagline": "Emerging-Tech Skills, Built for Every Community",
+    "heroLine1": "Learn. Build.",
+    "heroLine2": "Earn.",
+    "heroSubtitle": "Master in-demand digital skills — AI, cybersecurity, data science, and more — and get rewarded with W3TR as you learn, teach, and contribute.",
+    "startLearningFree": "Start learning free",
+    "browseCourses": "Browse courses",
+    "categoriesHeading": "Explore skill categories",
+    "howItWorksHeading": "How Web3tribe University works",
+    "step1Title": "Learn",
+    "step1Body": "Take mobile-first courses from certified instructors across in-demand digital skills.",
+    "step2Title": "Build",
+    "step2Body": "Complete projects, quizzes, and assignments that prove real, job-ready competency.",
+    "step3Title": "Earn",
+    "step3Body": "Earn W3TR rewards and verifiable certificates as you progress — proof employers can trust.",
+    "ctaHeading": "Ready to build your future?",
+    "ctaSubtitle": "Join thousands of Nigerians learning emerging technology skills — free to start.",
+    "ctaButton": "Create your free account"
+  },
+  "auth": {
+    "welcomeBack": "Welcome back",
+    "loginSubtitle": "Log in to continue learning, teaching, and earning W3TR.",
+    "continueWithGoogle": "Continue with Google",
+    "orContinueWithEmail": "Or continue with email",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "createAccount": "Create your account",
+    "registerSubtitle": "Join a national community of learners, instructors, and builders.",
+    "fullName": "Full name",
+    "alreadyHaveAccount": "Already have an account?"
+  },
+  "languageSwitcher": {
+    "label": "Language"
+  }
+}

@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/logo";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Brain,
   ShieldCheck,
@@ -21,7 +24,10 @@ import {
   Code2,
 } from "lucide-react";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const t = await getTranslations("landing");
+  const tCommon = await getTranslations("common");
+
   const categories = [
     { icon: Brain, label: "Artificial Intelligence" },
     { icon: Code2, label: "Software Development" },
@@ -36,6 +42,12 @@ export default function LandingPage() {
     { icon: Rocket, label: "Entrepreneurship" },
   ];
 
+  const steps = [
+    { step: "1", title: t("step1Title"), body: t("step1Body") },
+    { step: "2", title: t("step2Title"), body: t("step2Body") },
+    { step: "3", title: t("step3Title"), body: t("step3Body") },
+  ];
+
   return (
     <main className="flex flex-col">
       <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur">
@@ -45,8 +57,10 @@ export default function LandingPage() {
             Web3tribe University
           </span>
           <nav className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <ThemeToggle />
             <Button variant="ghost" asChild>
-              <Link href="/login">Log in</Link>
+              <Link href="/login">{tCommon("login")}</Link>
             </Button>
             <Button asChild>
               <Link href="/register">Get started</Link>
@@ -57,21 +71,18 @@ export default function LandingPage() {
 
       <section className="border-b border-border bg-gradient-to-b from-secondary/60 to-background px-4 py-20 text-center">
         <Badge variant="accent" className="mb-4">
-          Emerging-Tech Skills, Built for Every Community
+          {t("tagline")}
         </Badge>
         <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
-          Learn. Build. <span className="text-primary">Earn.</span>
+          {t("heroLine1")} <span className="text-primary">{t("heroLine2")}</span>
         </h1>
-        <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-          Master in-demand digital skills — AI, cybersecurity, data science, and more — and get rewarded with W3TR
-          as you learn, teach, and contribute.
-        </p>
+        <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">{t("heroSubtitle")}</p>
         <div className="mt-8 flex justify-center gap-3">
           <Button size="lg" asChild>
-            <Link href="/register">Start learning free</Link>
+            <Link href="/register">{t("startLearningFree")}</Link>
           </Button>
           <Button size="lg" variant="outline" asChild>
-            <Link href="/student/courses">Browse courses</Link>
+            <Link href="/student/courses">{t("browseCourses")}</Link>
           </Button>
         </div>
       </section>
@@ -93,7 +104,7 @@ export default function LandingPage() {
 
       <section className="border-y border-border bg-secondary/30 px-4 py-16">
         <div className="mx-auto max-w-5xl">
-          <h2 className="mb-8 text-center text-2xl font-bold">Explore skill categories</h2>
+          <h2 className="mb-8 text-center text-2xl font-bold">{t("categoriesHeading")}</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {categories.map((c) => (
               <Card key={c.label} className="transition-shadow hover:shadow-md">
@@ -108,13 +119,9 @@ export default function LandingPage() {
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-16">
-        <h2 className="mb-10 text-center text-2xl font-bold">How Web3tribe University works</h2>
+        <h2 className="mb-10 text-center text-2xl font-bold">{t("howItWorksHeading")}</h2>
         <div className="grid gap-8 sm:grid-cols-3">
-          {[
-            { step: "1", title: "Learn", body: "Take mobile-first courses from certified instructors across in-demand digital skills." },
-            { step: "2", title: "Build", body: "Complete projects, quizzes, and assignments that prove real, job-ready competency." },
-            { step: "3", title: "Earn", body: "Earn W3TR rewards and verifiable certificates as you progress — proof employers can trust." },
-          ].map((s) => (
+          {steps.map((s) => (
             <div key={s.step} className="text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
                 {s.step}
@@ -127,12 +134,10 @@ export default function LandingPage() {
       </section>
 
       <section className="border-t border-border bg-primary px-4 py-16 text-center text-primary-foreground">
-        <h2 className="text-2xl font-bold">Ready to build your future?</h2>
-        <p className="mx-auto mt-2 max-w-lg text-primary-foreground/80">
-          Join thousands of Nigerians learning emerging technology skills — free to start.
-        </p>
+        <h2 className="text-2xl font-bold">{t("ctaHeading")}</h2>
+        <p className="mx-auto mt-2 max-w-lg text-primary-foreground/80">{t("ctaSubtitle")}</p>
         <Button size="lg" variant="accent" className="mt-6" asChild>
-          <Link href="/register">Create your free account</Link>
+          <Link href="/register">{t("ctaButton")}</Link>
         </Button>
       </section>
 

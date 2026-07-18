@@ -1,0 +1,64 @@
+{
+  "common": {
+    "login": "Shiga",
+    "signup": "Yi Rijista",
+    "logout": "Fita",
+    "save": "Ajiye",
+    "cancel": "Soke",
+    "continue": "Ci gaba",
+    "loading": "Ana lodi…",
+    "submit": "Aika",
+    "back": "Baya",
+    "next": "Na gaba",
+    "search": "Bincike"
+  },
+  "nav": {
+    "dashboard": "Babban Shafi",
+    "browseCourses": "Bincika Darussa",
+    "myCourses": "Darussana",
+    "wishlist": "Jerin Sha'awa",
+    "wallet": "Walat na W3TR",
+    "certificates": "Takardun Shaida",
+    "leaderboard": "Jerin Manyan Sunaye",
+    "notifications": "Sanarwa",
+    "settings": "Saituna",
+    "createCourse": "Kirkiro Darasi",
+    "analytics": "Bincike na Bayanai"
+  },
+  "landing": {
+    "tagline": "Fasahar Zamani, An Gina Domin Kowace Al'umma",
+    "heroLine1": "Koya. Gina.",
+    "heroLine2": "Samu Kudi.",
+    "heroSubtitle": "Koyi fasahohin zamani masu bukata — AI, tsaron yanar gizo, ilimin bayanai, da sauransu — kuma a ba ka lada da W3TR yayin da kake koyo, koyarwa, da bayarwa gudunmawa.",
+    "startLearningFree": "Fara koyo kyauta",
+    "browseCourses": "Bincika Darussa",
+    "categoriesHeading": "Bincika Rukunonin Fasaha",
+    "howItWorksHeading": "Yadda Jami'ar Web3tribe Take Aiki",
+    "step1Title": "Koya",
+    "step1Body": "Yi darussa ta wayar hannu daga malaman da aka tantance a fasahohin zamani masu bukata.",
+    "step2Title": "Gina",
+    "step2Body": "Kammala ayyuka, jarrabawa, da manyan ayyuka wadanda ke tabbatar da ainihin kwarewa da za a iya samun aiki da ita.",
+    "step3Title": "Samu Kudi",
+    "step3Body": "Samu lada na W3TR da takardun shaida masu tabbatarwa yayin ci gabanka — hujja da ma'aikata za su iya amincewa da ita.",
+    "ctaHeading": "A shirye kake ka gina makomarka?",
+    "ctaSubtitle": "Ka hade kai da dubban 'yan Najeriya da ke koyon fasahohin zamani — kyauta ce ka fara.",
+    "ctaButton": "Kirkiro asusunka na kyauta"
+  },
+  "auth": {
+    "welcomeBack": "Barka da Dawowa",
+    "loginSubtitle": "Shiga domin ci gaba da koyo, koyarwa, da samun W3TR.",
+    "continueWithGoogle": "Ci gaba da Google",
+    "orContinueWithEmail": "Ko ci gaba da imel",
+    "email": "Imel",
+    "password": "Kalmar Sirri",
+    "forgotPassword": "Ka manta kalmar sirri?",
+    "noAccount": "Ba ka da asusu?",
+    "createAccount": "Kirkiro Asusunka",
+    "registerSubtitle": "Hade kai da al'ummar kasa ta masu koyo, malamai, da masu gini.",
+    "fullName": "Cikakken Suna",
+    "alreadyHaveAccount": "Kana da asusu tuni?"
+  },
+  "languageSwitcher": {
+    "label": "Harshe"
+  }
+}

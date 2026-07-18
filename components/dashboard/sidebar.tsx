@@ -62,6 +62,7 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   ],
   admin: [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/courses", label: "Course Moderation", icon: ShieldCheck },
     { href: "/admin/categories", label: "Categories", icon: FolderTree },
@@ -73,6 +74,7 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   ],
   super_admin: [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/courses", label: "Course Moderation", icon: ShieldCheck },
     { href: "/admin/categories", label: "Categories", icon: FolderTree },

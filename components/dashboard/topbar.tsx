@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/logo";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { initials, formatW3TR } from "@/lib/utils";
 import type { UserRole } from "@/lib/types";
 
@@ -42,6 +43,8 @@ export function DashboardTopbar({ role, w3trBalance }: { role: UserRole; w3trBal
             {formatW3TR(w3trBalance)} W3TR
           </Badge>
         )}
+
+        <LanguageSwitcher />
 
         <Button variant="ghost" size="icon" asChild>
           <Link href="/student/notifications" aria-label="Notifications">

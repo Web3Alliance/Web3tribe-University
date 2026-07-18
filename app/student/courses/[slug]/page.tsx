@@ -37,6 +37,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
   ]);
 
   let isEnrolled = false;
+  let isActive = false;
   let isWishlisted = false;
   let isCompleted = false;
   let hasCertificate = false;
@@ -46,7 +47,11 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
       supabase.from("enrollments").select("id,status").eq("student_id", profile.id).eq("course_id", course.id).maybeSingle(),
       supabase.from("wishlists").select("id").eq("student_id", profile.id).eq("course_id", course.id).maybeSingle(),
     ]);
-    isEnrolled = !!enrollment;
+    // A dropped enrollment shouldn't count as "enrolled" — otherwise a
+    // student who drops a course could never see the "Enroll Now" button
+    // again to re-join it later if they change their mind.
+    isEnrolled = !!enrollment && enrollment.status !== "dropped";
+    isActive = enrollment?.status === "active";
     isWishlisted = !!wish;
     isCompleted = enrollment?.status === "completed";
 
@@ -196,6 +201,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
                     courseId={course.id}
                     courseSlug={course.slug}
                     isEnrolled={isEnrolled}
+                    isActive={isActive}
                     firstLessonId={firstLesson?.id}
                   />
                 </div>
