@@ -19,11 +19,12 @@ export async function updateProfileAction(
   const username = String(formData.get("username") || "") || null;
   const bio = String(formData.get("bio") || "") || null;
   const country = String(formData.get("country") || "") || null;
+  const stateRegion = String(formData.get("stateRegion") || "") || null;
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("profiles")
-    .update({ full_name: fullName, username, bio, country })
+    .update({ full_name: fullName, username, bio, country, state_region: stateRegion })
     .eq("id", profile.id);
 
   if (error) return { error: error.message };

@@ -1,0 +1,124 @@
+"use client";
+import * as React from "react";
+import { useActionState } from "react";
+import { createCohortAction, type CohortFormState } from "@/lib/actions/cohorts";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { NIGERIAN_STATES } from "@/lib/nigerian-states";
+
+const initial: CohortFormState = { error: null };
+
+export function CohortCreateForm({ courses }: { courses: { id: string; title: string; authorName: string }[] }) {
+  const [state, formAction, isPending] = useActionState(createCohortAction, initial);
+  const [deliveryMode, setDeliveryMode] = React.useState<"online" | "hybrid" | "in_person">("online");
+
+  if (courses.length === 0) {
+    return <p className="text-sm text-muted-foreground">No published courses are available to teach yet.</p>;
+  }
+
+  return (
+    <form action={formAction} className="space-y-4">
+      <div className="space-y-2">
+        <Label>Course</Label>
+        <Select name="courseId" required>
+          <SelectTrigger>
+            <SelectValue placeholder="Choose a course to teach" />
+          </SelectTrigger>
+          <SelectContent>
+            {courses.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.title} — by {c.authorName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="title">Cohort title (optional)</Label>
+        <Input id="title" name="title" placeholder="e.g. August 2026 Jos Cohort" />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Delivery mode</Label>
+        <RadioGroup
+          value={deliveryMode}
+          onValueChange={(v) => setDeliveryMode(v as "online" | "hybrid" | "in_person")}
+          name="deliveryMode"
+          className="flex flex-wrap gap-4"
+        >
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <RadioGroupItem value="online" id="mode-online" />
+            Fully online
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <RadioGroupItem value="hybrid" id="mode-hybrid" />
+            Hybrid
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <RadioGroupItem value="in_person" id="mode-in-person" />
+            In-person
+          </label>
+        </RadioGroup>
+        <p className="text-xs text-muted-foreground">
+          Online cohorts appear to every student regardless of location. Hybrid and in-person cohorts are shown
+          to students in the matching state.
+        </p>
+      </div>
+
+      {deliveryMode !== "online" && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>State</Label>
+            <Select name="stateRegion" required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select state" />
+              </SelectTrigger>
+              <SelectContent>
+                {NIGERIAN_STATES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="address">Address (optional)</Label>
+            <Input id="address" name="address" placeholder="Venue / street address" />
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="startDate">Start date</Label>
+          <Input id="startDate" name="startDate" type="date" required />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="endDate">End date (optional)</Label>
+          <Input id="endDate" name="endDate" type="date" />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="maxStudents">Max students (optional)</Label>
+        <Input id="maxStudents" name="maxStudents" type="number" min={1} placeholder="No limit" />
+      </div>
+
+      <p className="rounded-md bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">
+        Once the start date arrives, this cohort automatically stops accepting new enrollments.
+      </p>
+
+      {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+      {state.success && <p className="text-sm text-success">Cohort created!</p>}
+
+      <Button type="submit" disabled={isPending}>
+        {isPending ? "Creating…" : "Start cohort"}
+      </Button>
+    </form>
+  );
+}

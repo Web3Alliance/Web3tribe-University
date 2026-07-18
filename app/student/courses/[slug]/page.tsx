@@ -10,8 +10,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { EnrollButton, WishlistButton } from "@/components/course/enroll-button";
 import { CourseResourcesList } from "@/components/course/course-resources-list";
 import { CertificateClaimButton } from "@/components/course/certificate-claim-button";
-import { Star, Users, Clock, PlayCircle, FileText, Lock, MessageSquare } from "lucide-react";
+import { Star, Users, Clock, PlayCircle, FileText, Lock, MessageSquare, MapPin, Globe } from "lucide-react";
 import { initials } from "@/lib/utils";
+import { CohortJoinButton } from "@/components/course/cohort-join-button";
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -27,13 +28,20 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
 
   if (!course) notFound();
 
-  const [{ data: sections }, { data: resources }] = await Promise.all([
+  const [{ data: sections }, { data: resources }, { data: cohorts }] = await Promise.all([
     supabase
       .from("course_sections")
       .select("*, lessons(id,title,content_type,duration_seconds,is_preview,display_order)")
       .eq("course_id", course.id)
       .order("display_order"),
     supabase.from("course_resources").select("*").eq("course_id", course.id).order("display_order"),
+    supabase
+      .from("cohorts")
+      .select("*, instructor:profiles!cohorts_instructor_id_fkey(full_name)")
+      .eq("course_id", course.id)
+      .eq("status", "upcoming")
+      .gte("start_date", new Date().toISOString().slice(0, 10))
+      .order("start_date"),
   ]);
 
   let isEnrolled = false;
@@ -170,6 +178,46 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
               ))}
             </Accordion>
           </div>
+
+          {(cohorts ?? []).length > 0 && (
+            <div>
+              <h3 className="mb-3 font-semibold">Upcoming Cohorts</h3>
+              <div className="space-y-2">
+                {(cohorts ?? []).map((cohort) => {
+                  const instructorName = (Array.isArray(cohort.instructor) ? cohort.instructor[0]?.full_name : cohort.instructor?.full_name) ?? "Instructor";
+                  const isNearMe = cohort.delivery_mode !== "online" && profile?.state_region && cohort.state_region === profile.state_region;
+                  return (
+                    <Card key={cohort.id} className={isNearMe ? "border-primary" : undefined}>
+                      <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+                        <div>
+                          <p className="flex items-center gap-2 font-medium">
+                            {cohort.title ?? `Cohort starting ${cohort.start_date}`}
+                            {isNearMe && <Badge variant="accent">Near you</Badge>}
+                          </p>
+                          <p className="flex items-center gap-1 text-sm text-muted-foreground">
+                            {cohort.delivery_mode === "online" ? (
+                              <>
+                                <Globe className="h-3.5 w-3.5" /> Fully online
+                              </>
+                            ) : (
+                              <>
+                                <MapPin className="h-3.5 w-3.5" /> {cohort.state_region}
+                                {cohort.address ? ` · ${cohort.address}` : ""}
+                              </>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Starts {new Date(cohort.start_date).toLocaleDateString()} · Led by {instructorName}
+                          </p>
+                        </div>
+                        <CohortJoinButton cohortId={cohort.id} courseSlug={course.slug} />
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {isEnrolled && <CourseResourcesList resources={resources ?? []} />}
           {isEnrolled && (

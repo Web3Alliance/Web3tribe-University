@@ -49,12 +49,15 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
     { href: "/instructor/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/instructor/courses", label: "My Courses", icon: BookOpen },
     { href: "/instructor/courses/new", label: "Create Course", icon: PlusCircle },
+    { href: "/instructor/cohorts/new", label: "Start a Cohort", icon: Users },
     { href: "/instructor/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/student/settings", label: "Settings", icon: Settings },
   ],
   organization: [
     { href: "/organization/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/organization/programs", label: "Programs", icon: ClipboardList },
     { href: "/organization/learners", label: "Learners", icon: GraduationCap },
+    { href: "/student/settings", label: "Settings", icon: Settings },
   ],
   moderator: [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },

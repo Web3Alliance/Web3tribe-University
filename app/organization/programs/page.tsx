@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getCurrentProfile } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { createOrganizationAction, createProgramAction } from "@/lib/actions/organization";
 
 export const metadata = { title: "Programs" };
@@ -45,15 +48,18 @@ export default async function OrganizationProgramsPage() {
     );
   }
 
-  const { data: programs } = await supabase
-    .from("organization_programs")
-    .select("*")
-    .eq("organization_id", org.id)
-    .order("created_at", { ascending: false });
+  const [{ data: programs }, { data: availableCourses }] = await Promise.all([
+    supabase
+      .from("organization_programs")
+      .select("*")
+      .eq("organization_id", org.id)
+      .order("created_at", { ascending: false }),
+    supabase.from("courses").select("id, title").eq("status", "published").order("title"),
+  ]);
 
   async function handleCreateProgram(formData: FormData) {
     "use server";
-    await createProgramAction(org.id, formData);
+    await createProgramAction(org!.id, formData);
   }
 
   return (
@@ -74,6 +80,31 @@ export default async function OrganizationProgramsPage() {
               <Label htmlFor="description">Description</Label>
               <Textarea id="description" name="description" rows={3} />
             </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start date</Label>
+                <Input id="startDate" name="startDate" type="date" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End date</Label>
+                <Input id="endDate" name="endDate" type="date" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Courses in this program</Label>
+              {(availableCourses ?? []).length === 0 ? (
+                <p className="text-xs text-muted-foreground">No published courses available yet.</p>
+              ) : (
+                <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border border-border p-3">
+                  {(availableCourses ?? []).map((c) => (
+                    <label key={c.id} className="flex items-center gap-2 text-sm">
+                      <Checkbox name="courseIds" value={c.id} />
+                      {c.title}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
             <Button type="submit">Create program</Button>
           </form>
         </CardContent>
@@ -81,12 +112,17 @@ export default async function OrganizationProgramsPage() {
 
       <div className="space-y-2">
         {(programs ?? []).map((p) => (
-          <Card key={p.id}>
-            <CardContent className="p-4">
-              <p className="font-medium">{p.name}</p>
-              <p className="text-sm text-muted-foreground">{p.description}</p>
-            </CardContent>
-          </Card>
+          <Link key={p.id} href={`/organization/programs/${p.id}`}>
+            <Card className="transition-shadow hover:shadow-md">
+              <CardContent className="flex items-center justify-between p-4">
+                <div>
+                  <p className="font-medium">{p.name}</p>
+                  <p className="text-sm text-muted-foreground">{p.description}</p>
+                </div>
+                <Badge variant="secondary">{(p.course_ids ?? []).length} courses</Badge>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
         {(programs ?? []).length === 0 && <p className="text-center text-muted-foreground">No programs yet.</p>}
       </div>
