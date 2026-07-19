@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileUploadField } from "@/components/course/file-upload-field";
 import type { Category, Course } from "@/lib/types";
@@ -14,9 +15,13 @@ import type { Category, Course } from "@/lib/types";
 export function CourseDetailsForm({ course, categories }: { course: Course; categories: Category[] }) {
   const [isPending, startTransition] = React.useTransition();
   const [thumbnailUrl, setThumbnailUrl] = React.useState(course.thumbnail_url ?? "");
+  const [deliveryMode, setDeliveryMode] = React.useState<"online" | "hybrid" | "in_person">(
+    course.delivery_mode ?? "online"
+  );
 
   function handleSubmit(formData: FormData) {
     formData.set("thumbnailUrl", thumbnailUrl);
+    formData.set("deliveryMode", deliveryMode);
     startTransition(async () => {
       const res = await updateCourseDetailsAction(course.id, formData);
       if (res.error) toast.error(res.error);
@@ -100,6 +105,32 @@ export function CourseDetailsForm({ course, categories }: { course: Course; cate
               <Label htmlFor="priceW3tr">Price (W3TR)</Label>
               <Input id="priceW3tr" name="priceW3tr" type="number" min={0} defaultValue={course.price_w3tr} />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Delivery mode</Label>
+            <RadioGroup
+              value={deliveryMode}
+              onValueChange={(v) => setDeliveryMode(v as "online" | "hybrid" | "in_person")}
+              className="flex flex-wrap gap-4"
+            >
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <RadioGroupItem value="online" id="delivery-online" />
+                Fully online
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <RadioGroupItem value="hybrid" id="delivery-hybrid" />
+                Hybrid
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <RadioGroupItem value="in_person" id="delivery-in-person" />
+                In-person
+              </label>
+            </RadioGroup>
+            <p className="text-xs text-muted-foreground">
+              This decides what location instructors have to provide when they start a cohort to teach this
+              course — they inherit whatever you set here and can&apos;t override it. Fully online means every
+              cohort is location-free and visible to every student regardless of where they are.
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="estimatedHours">Estimated hours</Label>

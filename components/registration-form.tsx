@@ -8,10 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+
 const initialState: AuthActionState = { error: null };
+
 export function RegistrationForm() {
   const [state, formAction, isPending] = useActionState(registerAction, initialState);
   const [role, setRole] = React.useState("student");
+
   if (state.success) {
     return (
       <Card className="w-full max-w-md">
@@ -29,6 +33,7 @@ export function RegistrationForm() {
       </Card>
     );
   }
+
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1 text-center">
@@ -50,6 +55,7 @@ export function RegistrationForm() {
             <Input id="password" name="password" type="password" required minLength={8} autoComplete="new-password" />
             <p className="text-xs text-muted-foreground">At least 8 characters.</p>
           </div>
+
           <div className="space-y-2">
             <Label>I am joining as a…</Label>
             <input type="hidden" name="role" value={role} />
@@ -69,15 +75,31 @@ export function RegistrationForm() {
               ))}
             </RadioGroup>
           </div>
+
+          <label className="flex items-start gap-2 text-sm text-muted-foreground">
+            <Checkbox name="acceptedTerms" required className="mt-0.5" />
+            I agree to the{" "}
+            <Link href="/terms" target="_blank" className="text-primary hover:underline">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" target="_blank" className="text-primary hover:underline">
+              Privacy Policy
+            </Link>
+            .
+          </label>
+
           {state.error && (
             <p role="alert" className="text-sm text-destructive">
               {state.error}
             </p>
           )}
+
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Creating account…" : "Create account"}
           </Button>
         </form>
+
         <p className="mt-4 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link href="/login" className="text-primary hover:underline">

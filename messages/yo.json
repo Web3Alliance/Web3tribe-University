@@ -35,14 +35,16 @@
     "categoriesHeading": "Wá Àwọn Ẹ̀ka Ẹ̀kọ́",
     "howItWorksHeading": "Bí Yunifásítì Web3tribe Ṣe Ń Ṣiṣẹ́",
     "step1Title": "Kọ́",
-    "step1Body": "Ṣe àwọn ẹ̀kọ́ olùkọ́ tí a fọwọ́sí lórí fóònù rẹ ní àwọn ìmọ̀-ẹ̀rọ tí a nílò lónìí.",
+    "step1Body": "Ṣe àwọn ẹ̀kọ́ olùkọ́ tí ń kọ́ àwọn ìmọ̀-ẹ̀rọ tí a nílò lónìí lórí fóònù rẹ.",
     "step2Title": "Ṣe",
-    "step2Body": "Parí àwọn iṣẹ́, àdánwò, àti àwọn iṣẹ́-àṣetiléwá tí ó fi ẹ̀rí ìmọ̀ tòótọ́ hàn.",
+    "step2Body": "Lo ohun tí o kọ́ láti kọ́ àwọn iṣẹ́ àti ìojútùú gidi — kì í ṣe ẹ̀kọ́ lásán — láti yanjú àwọn ìṣòro tí ó ṣe pàtàkì fún àdúgbò àti iṣẹ́ rẹ.",
     "step3Title": "Jèrè",
     "step3Body": "Jèrè èrè W3TR àti ẹ̀rí ìwé-ẹ̀rí tí a lè fọwọ́sí bí o ṣe ń tẹ̀síwájú — ẹ̀rí tí àwọn agbanisíṣẹ́ lè gbẹ́kẹ̀lé.",
     "ctaHeading": "Ṣé o ti ṣetán láti kọ́ ọjọ́ ọ̀la rẹ?",
     "ctaSubtitle": "Darapọ̀ mọ́ ẹgbẹẹgbẹ̀rún ọmọ Nàìjíríà tí ń kọ́ àwọn ìmọ̀-ẹ̀rọ tuntun — ọ̀fẹ́ ni láti bẹ̀rẹ̀.",
-    "ctaButton": "Ṣẹ̀dá àkántì rẹ ní ọ̀fẹ́"
+    "ctaButton": "Ṣẹ̀dá àkántì rẹ ní ọ̀fẹ́",
+    "countryReadyHeading": "A Kọ́ Fún Nàìjíríà. Ó Ti Ṣetán Fún Àgbáyé.",
+    "countryReadyBody": "Àwọn akẹ́kọ̀ọ́, èdè, àti òfin oríṣiríṣi orílẹ̀-èdè yàtọ̀ síra — ìdí nìyẹn tí a fi kọ́ pátákò yìí kí a lè tún ṣe é fún èyíkéyìí orílẹ̀-èdè nígbàkigbà: èdè, ìpínlẹ̀, àti òfin ìbámu ni gbogbo wọn ṣe é yí padà. À ń yanjú ìṣòro ìmọ̀-ẹ̀rọ ní Nàìjíríà kọ́kọ́, nítorí Nàìjíríà ni à ń gbé — àmọ́ a kò kọ́ ìlànà náà láti dúró síbẹ̀."
   },
   "auth": {
     "welcomeBack": "Káàbọ̀ Padà",

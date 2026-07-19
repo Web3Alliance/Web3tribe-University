@@ -75,8 +75,23 @@ export function EnrollButton({
       onClick={() =>
         startTransition(async () => {
           const res = await enrollInCourse(courseId, courseSlug);
-          if (res.error) toast.error(res.error);
-          else toast.success("Enrolled! Let's start learning.");
+          if ("requiresBiodata" in res && res.requiresBiodata) {
+            router.push(`/student/biodata?redirectTo=/student/courses/${courseSlug}`);
+          } else if ("insufficientBalance" in res && res.insufficientBalance) {
+            toast.error(
+              `You need ${res.shortfall} more W3TR to enroll in this course (you have ${res.has}, it costs ${res.needed}).`,
+              {
+                action: {
+                  label: "Buy W3TR",
+                  onClick: () => router.push("/student/wallet"),
+                },
+              }
+            );
+          } else if (res.error) {
+            toast.error(res.error);
+          } else {
+            toast.success("Enrolled! Let's start learning.");
+          }
         })
       }
     >

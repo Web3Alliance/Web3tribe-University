@@ -2,6 +2,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/rbac";
+import { getBiodataGateStatus } from "@/lib/actions/biodata";
+import { getRewardEngine } from "@/lib/reward-engine";
 
 export interface CohortFormState {
   error: string | null;
@@ -16,6 +18,12 @@ export interface CohortFormState {
  * supabase/migrations/0005_cohorts_and_location.sql. profiles.is_instructor_verified
  * already exists for exactly this purpose and can be checked here later
  * without a schema change.
+ *
+ * Delivery mode is NOT chosen here — it belongs to the course, decided once
+ * by its original author, and every cohort inherits it (enforced at the
+ * database level too, see 0006_delivery_mode_on_course.sql). This action
+ * only ever reads course.delivery_mode to decide whether a location is
+ * required; the instructor starting the cohort can't pick a different mode.
  */
 export async function createCohortAction(
   _prevState: CohortFormState,
@@ -31,12 +39,15 @@ export async function createCohortAction(
   if (!courseId) return { error: "Choose a course to teach." };
 
   const supabase = await createClient();
-  const { data: course } = await supabase.from("courses").select("id, status").eq("id", courseId).single();
+  const { data: course } = await supabase
+    .from("courses")
+    .select("id, status, delivery_mode")
+    .eq("id", courseId)
+    .single();
   if (!course || course.status !== "published") {
     return { error: "That course isn't available to teach right now." };
   }
 
-  const deliveryMode = String(formData.get("deliveryMode") || "online") as "online" | "hybrid" | "in_person";
   const stateRegion = String(formData.get("stateRegion") || "") || null;
   const address = String(formData.get("address") || "") || null;
   const startDate = String(formData.get("startDate") || "");
@@ -45,8 +56,8 @@ export async function createCohortAction(
   const title = String(formData.get("title") || "") || null;
 
   if (!startDate) return { error: "Start date is required." };
-  if (deliveryMode !== "online" && !stateRegion) {
-    return { error: "State is required for hybrid or in-person cohorts." };
+  if (course.delivery_mode !== "online" && !stateRegion) {
+    return { error: `This course is ${course.delivery_mode} — a state is required to start a cohort for it.` };
   }
   if (new Date(startDate) < new Date(new Date().toDateString())) {
     return { error: "Start date can't be in the past." };
@@ -56,9 +67,8 @@ export async function createCohortAction(
     course_id: courseId,
     instructor_id: profile.id,
     title,
-    delivery_mode: deliveryMode,
-    state_region: deliveryMode === "online" ? null : stateRegion,
-    address: deliveryMode === "online" ? null : address,
+    state_region: course.delivery_mode === "online" ? null : stateRegion,
+    address: course.delivery_mode === "online" ? null : address,
     max_students: maxStudents,
     start_date: startDate,
     end_date: endDate,
@@ -79,6 +89,14 @@ export async function createCohortAction(
 export async function enrollInCohortAction(cohortId: string, courseSlug: string) {
   const profile = await getCurrentProfile();
   if (!profile) return { error: "You must be logged in to enroll." };
+
+  // Same institutional biodata requirement as direct course enrollment.
+  if (profile.role === "student") {
+    const biodataStatus = await getBiodataGateStatus(profile.id);
+    if (!biodataStatus.hasCleared) {
+      return { error: null, requiresBiodata: true };
+    }
+  }
 
   const supabase = await createClient();
   const { data: cohort } = await supabase.from("cohorts").select("*").eq("id", cohortId).single();
@@ -134,6 +152,30 @@ export async function enrollInCohortAction(cohortId: string, courseSlug: string)
     if (error) return { error: error.message };
     revalidatePath(`/student/courses/${courseSlug}`);
     return { error: null };
+  }
+
+  // Same premium-course price enforcement as direct enrollment.
+  const { data: course } = await supabase.from("courses").select("price_w3tr").eq("id", cohort.course_id).single();
+  const price = Number(course?.price_w3tr ?? 0);
+
+  if (price > 0) {
+    const rewardEngine = getRewardEngine(supabase);
+    const wallet = await rewardEngine.getBalance(profile.id);
+    const balance = Number(wallet?.balance ?? 0);
+
+    if (balance < price) {
+      return { error: null, insufficientBalance: true, needed: price, has: balance, shortfall: price - balance };
+    }
+
+    try {
+      await rewardEngine.spend(profile.id, price, {
+        referenceTable: "cohorts",
+        referenceId: cohortId,
+        description: `Joined premium course cohort`,
+      });
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Failed to charge W3TR for this cohort." };
+    }
   }
 
   const { error } = await supabase.from("enrollments").insert({

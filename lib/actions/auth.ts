@@ -29,11 +29,18 @@ export async function registerAction(_prevState: AuthActionState, formData: Form
   const password = String(formData.get("password") || "");
   const fullName = String(formData.get("fullName") || "");
   const role = String(formData.get("role") || "student") as UserRole;
+  const acceptedTerms = formData.get("acceptedTerms") === "on";
 
   if (!email || !password || !fullName) return { error: "All fields are required." };
   if (password.length < 8) return { error: "Password must be at least 8 characters." };
   if (!["student", "instructor", "organization"].includes(role)) {
     return { error: "Invalid account type." };
+  }
+  // Enforced server-side, not just as a client-side checkbox — a request
+  // crafted directly against this action (bypassing the UI) must still be
+  // rejected without acceptance.
+  if (!acceptedTerms) {
+    return { error: "You must accept the Terms of Service and Privacy Policy to create an account." };
   }
 
   const supabase = await createClient();

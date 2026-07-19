@@ -6,14 +6,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
 import { NIGERIAN_STATES } from "@/lib/nigerian-states";
 
 const initial: CohortFormState = { error: null };
 
-export function CohortCreateForm({ courses }: { courses: { id: string; title: string; authorName: string }[] }) {
+interface CourseOption {
+  id: string;
+  title: string;
+  authorName: string;
+  deliveryMode: "online" | "hybrid" | "in_person";
+}
+
+const DELIVERY_LABEL: Record<CourseOption["deliveryMode"], string> = {
+  online: "Fully online",
+  hybrid: "Hybrid",
+  in_person: "In-person",
+};
+
+export function CohortCreateForm({ courses }: { courses: CourseOption[] }) {
   const [state, formAction, isPending] = useActionState(createCohortAction, initial);
-  const [deliveryMode, setDeliveryMode] = React.useState<"online" | "hybrid" | "in_person">("online");
+  const [selectedCourseId, setSelectedCourseId] = React.useState<string>("");
+
+  const selectedCourse = courses.find((c) => c.id === selectedCourseId);
+  const requiresLocation = selectedCourse && selectedCourse.deliveryMode !== "online";
 
   if (courses.length === 0) {
     return <p className="text-sm text-muted-foreground">No published courses are available to teach yet.</p>;
@@ -23,7 +39,7 @@ export function CohortCreateForm({ courses }: { courses: { id: string; title: st
     <form action={formAction} className="space-y-4">
       <div className="space-y-2">
         <Label>Course</Label>
-        <Select name="courseId" required>
+        <Select name="courseId" required onValueChange={setSelectedCourseId}>
           <SelectTrigger>
             <SelectValue placeholder="Choose a course to teach" />
           </SelectTrigger>
@@ -37,39 +53,19 @@ export function CohortCreateForm({ courses }: { courses: { id: string; title: st
         </Select>
       </div>
 
+      {selectedCourse && (
+        <p className="flex items-center gap-2 text-xs text-muted-foreground">
+          Delivery mode: <Badge variant="secondary">{DELIVERY_LABEL[selectedCourse.deliveryMode]}</Badge>
+          <span>— set by the course&apos;s author, applies to every cohort automatically.</span>
+        </p>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="title">Cohort title (optional)</Label>
         <Input id="title" name="title" placeholder="e.g. August 2026 Jos Cohort" />
       </div>
 
-      <div className="space-y-2">
-        <Label>Delivery mode</Label>
-        <RadioGroup
-          value={deliveryMode}
-          onValueChange={(v) => setDeliveryMode(v as "online" | "hybrid" | "in_person")}
-          name="deliveryMode"
-          className="flex flex-wrap gap-4"
-        >
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <RadioGroupItem value="online" id="mode-online" />
-            Fully online
-          </label>
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <RadioGroupItem value="hybrid" id="mode-hybrid" />
-            Hybrid
-          </label>
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <RadioGroupItem value="in_person" id="mode-in-person" />
-            In-person
-          </label>
-        </RadioGroup>
-        <p className="text-xs text-muted-foreground">
-          Online cohorts appear to every student regardless of location. Hybrid and in-person cohorts are shown
-          to students in the matching state.
-        </p>
-      </div>
-
-      {deliveryMode !== "online" && (
+      {requiresLocation && (
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>State</Label>

@@ -16,8 +16,21 @@ export function CohortJoinButton({ cohortId, courseSlug }: { cohortId: string; c
       onClick={() =>
         startTransition(async () => {
           const res = await enrollInCohortAction(cohortId, courseSlug);
-          if (res.error) toast.error(res.error);
-          else {
+          if ("requiresBiodata" in res && res.requiresBiodata) {
+            router.push(`/student/biodata?redirectTo=/student/courses/${courseSlug}`);
+          } else if ("insufficientBalance" in res && res.insufficientBalance) {
+            toast.error(
+              `You need ${res.shortfall} more W3TR to join this cohort (you have ${res.has}, it costs ${res.needed}).`,
+              {
+                action: {
+                  label: "Buy W3TR",
+                  onClick: () => router.push("/student/wallet"),
+                },
+              }
+            );
+          } else if (res.error) {
+            toast.error(res.error);
+          } else {
             toast.success("Joined the cohort!");
             router.refresh();
           }

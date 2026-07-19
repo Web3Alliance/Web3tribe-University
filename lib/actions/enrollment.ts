@@ -2,10 +2,22 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/rbac";
+import { getBiodataGateStatus } from "@/lib/actions/biodata";
+import { getRewardEngine } from "@/lib/reward-engine";
 
 export async function enrollInCourse(courseId: string, courseSlug: string) {
   const profile = await getCurrentProfile();
   if (!profile) return { error: "You must be logged in to enroll." };
+
+  // Institutional biodata is required before a student can enroll in
+  // anything — the only exception is a temporary skip allowance for the
+  // first BIODATA_SKIP_LIMIT students, for testing/showcase purposes.
+  if (profile.role === "student") {
+    const biodataStatus = await getBiodataGateStatus(profile.id);
+    if (!biodataStatus.hasCleared) {
+      return { error: null, requiresBiodata: true };
+    }
+  }
 
   const supabase = await createClient();
 
@@ -50,11 +62,42 @@ export async function enrollInCourse(courseId: string, courseSlug: string) {
   if (existing) {
     if (existing.status === "active") return { error: "You're already enrolled in this course." };
     if (existing.status === "completed") return { error: "You've already completed this course." };
-    // status === "dropped" — reactivate it.
+    // status === "dropped" — reactivate it. Re-enrolling after a drop does
+    // not charge W3TR again; the price was already paid the first time.
     const { error } = await supabase.from("enrollments").update({ status: "active" }).eq("id", existing.id);
     if (error) return { error: error.message };
     revalidatePath(`/student/courses/${courseSlug}`);
     return { error: null };
+  }
+
+  // Premium courses (price_w3tr > 0) require spending W3TR to enroll. If the
+  // student doesn't have enough, we don't just fail — we tell the UI exactly
+  // how much more they need so it can offer the "Buy W3TR" flow instead of a
+  // dead-end error.
+  const { data: course } = await supabase.from("courses").select("price_w3tr").eq("id", courseId).single();
+  const price = Number(course?.price_w3tr ?? 0);
+
+  if (price > 0) {
+    const rewardEngine = getRewardEngine(supabase);
+    const wallet = await rewardEngine.getBalance(profile.id);
+    const balance = Number(wallet?.balance ?? 0);
+
+    if (balance < price) {
+      return { error: null, insufficientBalance: true, needed: price, has: balance, shortfall: price - balance };
+    }
+
+    try {
+      await rewardEngine.spend(profile.id, price, {
+        referenceTable: "courses",
+        referenceId: courseId,
+        description: `Enrolled in premium course`,
+      });
+    } catch (e) {
+      // The database's own negative-balance guard is the final safety net
+      // in case of a race condition between the balance check above and
+      // this spend (e.g. two enrollment attempts in quick succession).
+      return { error: e instanceof Error ? e.message : "Failed to charge W3TR for this course." };
+    }
   }
 
   const { error } = await supabase.from("enrollments").insert({

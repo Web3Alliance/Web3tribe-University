@@ -185,7 +185,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
               <div className="space-y-2">
                 {(cohorts ?? []).map((cohort) => {
                   const instructorName = (Array.isArray(cohort.instructor) ? cohort.instructor[0]?.full_name : cohort.instructor?.full_name) ?? "Instructor";
-                  const isNearMe = cohort.delivery_mode !== "online" && profile?.state_region && cohort.state_region === profile.state_region;
+                  const isOnline = course.delivery_mode === "online";
+                  const isNearMe = !isOnline && profile?.state_region && cohort.state_region === profile.state_region;
                   return (
                     <Card key={cohort.id} className={isNearMe ? "border-primary" : undefined}>
                       <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
@@ -195,7 +196,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
                             {isNearMe && <Badge variant="accent">Near you</Badge>}
                           </p>
                           <p className="flex items-center gap-1 text-sm text-muted-foreground">
-                            {cohort.delivery_mode === "online" ? (
+                            {isOnline ? (
                               <>
                                 <Globe className="h-3.5 w-3.5" /> Fully online
                               </>

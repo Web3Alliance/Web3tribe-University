@@ -34,7 +34,7 @@ export function ModerationPanel({ courseId }: { courseId: string }) {
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       <Button size="sm" onClick={handleApprove} disabled={isPending}>
         <CheckCircle2 className="h-4 w-4" /> Approve
       </Button>

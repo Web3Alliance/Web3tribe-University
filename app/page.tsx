@@ -133,6 +133,11 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      <section className="border-y border-border bg-secondary/30 px-4 py-16 text-center">
+        <h2 className="mx-auto max-w-2xl text-2xl font-bold">{t("countryReadyHeading")}</h2>
+        <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">{t("countryReadyBody")}</p>
+      </section>
+
       <section className="border-t border-border bg-primary px-4 py-16 text-center text-primary-foreground">
         <h2 className="text-2xl font-bold">{t("ctaHeading")}</h2>
         <p className="mx-auto mt-2 max-w-lg text-primary-foreground/80">{t("ctaSubtitle")}</p>
@@ -143,6 +148,14 @@ export default async function LandingPage() {
 
       <footer className="border-t border-border px-4 py-8 text-center text-sm text-muted-foreground">
         <p>© {new Date().getFullYear()} Web3tribe University · A Web3.0 Alliance Ltd platform.</p>
+        <p className="mt-2 flex justify-center gap-4">
+          <Link href="/terms" className="hover:text-foreground hover:underline">
+            Terms of Service
+          </Link>
+          <Link href="/privacy" className="hover:text-foreground hover:underline">
+            Privacy Policy
+          </Link>
+        </p>
       </footer>
     </main>
   );

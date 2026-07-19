@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatW3TR, formatRelativeTime } from "@/lib/utils";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { BuyW3trBundles } from "@/components/wallet/buy-w3tr-bundles";
 
 export const metadata = { title: "W3TR Wallet" };
 
@@ -25,6 +26,7 @@ const TYPE_LABELS: Record<string, string> = {
   admin_deduction: "Admin deduction",
   spend: "Spent",
   donation_conversion: "Donation conversion",
+  token_purchase: "Purchased",
   adjustment: "Adjustment",
 };
 
@@ -77,6 +79,18 @@ export default async function WalletPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Buy W3TR</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Need more W3TR for a premium course? Top up with a card or bank transfer via Paystack.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <BuyW3trBundles />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

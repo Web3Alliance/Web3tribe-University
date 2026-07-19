@@ -13,7 +13,7 @@ export default async function StartCohortPage() {
   // their field, not necessarily one they wrote themselves.
   const { data: courses } = await supabase
     .from("courses")
-    .select("id, title, subtitle, instructor:profiles!courses_instructor_id_fkey(full_name)")
+    .select("id, title, subtitle, delivery_mode, instructor:profiles!courses_instructor_id_fkey(full_name)")
     .eq("status", "published")
     .order("title");
 
@@ -23,7 +23,8 @@ export default async function StartCohortPage() {
         <h1 className="text-2xl font-bold">Start a Cohort</h1>
         <p className="text-muted-foreground">
           Teach an existing course to a group of students. You don&apos;t need to be the course&apos;s original
-          author — pick any published course below.
+          author — pick any published course below. The course&apos;s delivery mode (online, hybrid, or
+          in-person) was fixed by its original author and applies to your cohort automatically.
         </p>
       </div>
 
@@ -42,6 +43,7 @@ export default async function StartCohortPage() {
                 id: c.id,
                 title: c.title,
                 authorName: author?.full_name ?? "Unknown",
+                deliveryMode: c.delivery_mode as "online" | "hybrid" | "in_person",
               };
             })}
           />

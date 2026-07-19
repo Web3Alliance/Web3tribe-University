@@ -2,9 +2,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { Moon, Sun, LogOut, Settings, Bell } from "lucide-react";
+import { LogOut, Settings, Bell, Sun, Moon, Languages } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/auth-context";
 import { logoutAction } from "@/lib/actions/auth";
+import { setLocaleAction } from "@/lib/actions/locale";
+import { SUPPORTED_LOCALES, LOCALE_LABELS, type SupportedLocale } from "@/i18n/locales";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
@@ -14,17 +17,24 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/logo";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { initials, formatW3TR } from "@/lib/utils";
 import type { UserRole } from "@/lib/types";
 
 export function DashboardTopbar({ role, w3trBalance }: { role: UserRole; w3trBalance?: number }) {
-  const { theme, setTheme } = useTheme();
   const { profile } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const locale = useLocale() as SupportedLocale;
+  const t = useTranslations("languageSwitcher");
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-border bg-card/80 px-3 backdrop-blur sm:gap-4 sm:px-4">
@@ -44,22 +54,19 @@ export function DashboardTopbar({ role, w3trBalance }: { role: UserRole; w3trBal
           </Badge>
         )}
 
-        <LanguageSwitcher />
+        {/* Below sm (~640px), the topbar only has room for one icon plus the
+            avatar without crowding or overflow on smaller phones — Language
+            and Theme move into the avatar dropdown below instead of sitting
+            as separate top-level buttons. */}
+        <div className="hidden items-center gap-1 sm:flex sm:gap-2">
+          <LanguageSwitcher />
+          <ThemeToggle />
+        </div>
 
         <Button variant="ghost" size="icon" asChild>
           <Link href="/student/notifications" aria-label="Notifications">
             <Bell className="h-4 w-4" />
           </Link>
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          aria-label="Toggle theme"
-        >
-          <Sun className="h-4 w-4 dark:hidden" />
-          <Moon className="hidden h-4 w-4 dark:block" />
         </Button>
 
         <DropdownMenu>
@@ -84,6 +91,39 @@ export function DashboardTopbar({ role, w3trBalance }: { role: UserRole; w3trBal
                 <Settings className="h-4 w-4" /> Settings
               </Link>
             </DropdownMenuItem>
+
+            {/* Mobile-only duplicates of the quick-access icons hidden above,
+                so nothing is actually lost on small screens — just moved
+                somewhere that doesn't crowd the header. */}
+            <div className="sm:hidden">
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setTheme(theme === "dark" ? "light" : "dark"); }}>
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {theme === "dark" ? "Light mode" : "Dark mode"}
+              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Languages className="h-4 w-4" /> {t("label")}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent>
+                    {SUPPORTED_LOCALES.map((code) => (
+                      <DropdownMenuItem
+                        key={code}
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          if (code !== locale) setLocaleAction(code).then(() => window.location.reload());
+                        }}
+                        className={code === locale ? "font-semibold text-primary" : ""}
+                      >
+                        {LOCALE_LABELS[code]}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+            </div>
+
             <DropdownMenuSeparator />
             <form action={logoutAction}>
               <button type="submit" className="flex w-full items-center gap-2 px-2 py-1.5 text-sm text-destructive">

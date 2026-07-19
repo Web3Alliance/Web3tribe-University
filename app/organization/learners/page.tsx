@@ -39,7 +39,7 @@ export default async function OrganizationLearnersPage() {
           <CardTitle className="text-base">Invite a learner</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={handleInvite} className="flex gap-2">
+          <form action={handleInvite} className="flex flex-col gap-2 sm:flex-row">
             <Input name="email" type="email" placeholder="learner@example.com" required />
             <Button type="submit">Invite</Button>
           </form>

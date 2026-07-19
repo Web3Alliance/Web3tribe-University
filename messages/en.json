@@ -35,14 +35,16 @@
     "categoriesHeading": "Explore skill categories",
     "howItWorksHeading": "How Web3tribe University works",
     "step1Title": "Learn",
-    "step1Body": "Take mobile-first courses from certified instructors across in-demand digital skills.",
+    "step1Body": "Take mobile-first courses from instructors teaching real, in-demand digital skills.",
     "step2Title": "Build",
-    "step2Body": "Complete projects, quizzes, and assignments that prove real, job-ready competency.",
+    "step2Body": "Apply what you learn to build real projects and solutions — not just theory — tackling problems that matter in your community and career.",
     "step3Title": "Earn",
     "step3Body": "Earn W3TR rewards and verifiable certificates as you progress — proof employers can trust.",
     "ctaHeading": "Ready to build your future?",
     "ctaSubtitle": "Join thousands of Nigerians learning emerging technology skills — free to start.",
-    "ctaButton": "Create your free account"
+    "ctaButton": "Create your free account",
+    "countryReadyHeading": "Built for Nigeria. Ready for the World.",
+    "countryReadyBody": "Every country's learners, languages, and regulations are different — so the platform itself is built to be configured for any country on demand: languages, states and regions, and compliance settings can all be adapted. We're solving Nigeria's digital skills gap first, because Nigeria is where we are — the architecture was never built to stop there."
   },
   "auth": {
     "welcomeBack": "Welcome back",

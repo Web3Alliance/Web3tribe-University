@@ -72,6 +72,12 @@ export async function updateCourseDetailsAction(courseId: string, formData: Form
   const priceW3tr = Number(formData.get("priceW3tr") || 0);
   const estimatedHours = formData.get("estimatedHours") ? Number(formData.get("estimatedHours")) : null;
   const thumbnailUrl = String(formData.get("thumbnailUrl") || "") || null;
+  // Delivery mode is decided once here, by the course's original author (this
+  // action is already gated to them via assertOwnsCourseOrAdmin above), and
+  // every cohort later started for this course inherits it — a cohort
+  // instructor cannot pick a different mode. Enforced at the database level
+  // too (see 0006_delivery_mode_on_course.sql) as the real source of truth.
+  const deliveryMode = String(formData.get("deliveryMode") || "online");
   const requirements = String(formData.get("requirements") || "")
     .split("\n")
     .map((s) => s.trim())
@@ -92,6 +98,7 @@ export async function updateCourseDetailsAction(courseId: string, formData: Form
       price_w3tr: priceW3tr,
       estimated_hours: estimatedHours,
       thumbnail_url: thumbnailUrl,
+      delivery_mode: deliveryMode,
       requirements,
       learning_outcomes: learningOutcomes,
     })

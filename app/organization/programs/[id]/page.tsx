@@ -114,7 +114,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
               Learners page first.
             </p>
           ) : (
-            <form action={handleAssign} className="flex gap-2">
+            <form action={handleAssign} className="flex flex-col gap-2 sm:flex-row">
               <Select name="profileId" required>
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder="Choose a learner" />

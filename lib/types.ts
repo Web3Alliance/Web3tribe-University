@@ -56,6 +56,7 @@ export type W3trTransactionType =
   | "admin_deduction"
   | "spend"
   | "donation_conversion"
+  | "token_purchase"
   | "adjustment";
 
 export type DonationStatus = "pending" | "confirmed" | "failed" | "refunded";
@@ -100,6 +101,25 @@ export interface StudentProfile {
   referred_by: string | null;
 }
 
+export interface StudentBiodata {
+  profile_id: string;
+  skipped: boolean;
+  date_of_birth: string | null;
+  gender: "male" | "female" | "other" | null;
+  nationality: string | null;
+  state_of_origin: string | null;
+  lga: string | null;
+  home_address: string | null;
+  next_of_kin_name: string | null;
+  next_of_kin_relationship: string | null;
+  next_of_kin_phone: string | null;
+  next_of_kin_address: string | null;
+  highest_qualification: string | null;
+  occupation_or_institution: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface InstructorProfile {
   profile_id: string;
   headline: string | null;
@@ -142,6 +162,8 @@ export interface Course {
   status: CourseStatus;
   version: number;
   price_w3tr: number;
+  /** Set once by the course's original author; cohorts inherit it and cannot override it. */
+  delivery_mode: "online" | "hybrid" | "in_person";
   estimated_hours: number | null;
   requirements: string[];
   learning_outcomes: string[];
@@ -304,6 +326,18 @@ export interface W3trTransaction {
   reference_id: string | null;
   description: string | null;
   awarded_by: string | null;
+  created_at: string;
+}
+
+export interface W3trPurchase {
+  id: string;
+  profile_id: string;
+  bundle_key: string;
+  w3tr_amount: number;
+  amount_naira: number;
+  status: "pending" | "confirmed" | "failed";
+  provider_reference: string | null;
+  confirmed_at: string | null;
   created_at: string;
 }
 

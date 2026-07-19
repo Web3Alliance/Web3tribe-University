@@ -35,14 +35,16 @@
     "categoriesHeading": "Bincika Rukunonin Fasaha",
     "howItWorksHeading": "Yadda Jami'ar Web3tribe Take Aiki",
     "step1Title": "Koya",
-    "step1Body": "Yi darussa ta wayar hannu daga malaman da aka tantance a fasahohin zamani masu bukata.",
+    "step1Body": "Yi darussa ta wayar hannu daga malamai da ke koyar da ainihin fasahohin zamani masu bukata.",
     "step2Title": "Gina",
-    "step2Body": "Kammala ayyuka, jarrabawa, da manyan ayyuka wadanda ke tabbatar da ainihin kwarewa da za a iya samun aiki da ita.",
+    "step2Body": "Yi amfani da abin da ka koya don gina ainihin ayyuka da mafita — ba ka'ida kawai ba — magance matsalolin da suka shafi al'ummarka da sana'arka.",
     "step3Title": "Samu Kudi",
     "step3Body": "Samu lada na W3TR da takardun shaida masu tabbatarwa yayin ci gabanka — hujja da ma'aikata za su iya amincewa da ita.",
     "ctaHeading": "A shirye kake ka gina makomarka?",
     "ctaSubtitle": "Ka hade kai da dubban 'yan Najeriya da ke koyon fasahohin zamani — kyauta ce ka fara.",
-    "ctaButton": "Kirkiro asusunka na kyauta"
+    "ctaButton": "Kirkiro asusunka na kyauta",
+    "countryReadyHeading": "An Gina Domin Najeriya. A Shirye Domin Duniya.",
+    "countryReadyBody": "Kowace kasa tana da bambancin dalibai, harsuna, da dokoki — shi ya sa an gina dandalin domin a iya daidaita shi ga kowace kasa a duk lokacin da ake so: harsuna, jihohi da yankuna, da saitunan bin doka duk ana iya canza su. Muna magance matsalar fasahar zamani ta Najeriya tukuna, domin Najeriya ce muke — amma ba a gina tsarin domin ya tsaya nan kadai ba."
   },
   "auth": {
     "welcomeBack": "Barka da Dawowa",

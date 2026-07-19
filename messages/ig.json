@@ -35,14 +35,16 @@
     "categoriesHeading": "Chọpụta Ụdị Nka",
     "howItWorksHeading": "Otu Mahadum Web3tribe Si Arụ Ọrụ",
     "step1Title": "Mụta",
-    "step1Body": "Mụta ọmụmụ ndị ọká gosipụtara n'ekwentị gị n'ụdị nka dijitalụ a chọrọ ugbu a.",
+    "step1Body": "Mụta ọmụmụ ndị nkụzi na-akụzi ezigbo nka dijitalụ a chọrọ ugbu a n'ekwentị gị.",
     "step2Title": "Wuo",
-    "step2Body": "Mechaa ọrụ, ule, na ọrụ e nyere gị nke na-egosi ezigbo nkà ị nwere maka ọrụ.",
+    "step2Body": "Jiri ihe ị mụtara wuo ezigbo ọrụ na ngwọta — ọ bụghị naanị usoro ihe omụma — na-edozi nsogbu ndị dị mkpa n'obodo gị na ọrụ gị.",
     "step3Title": "Rite Ụgwọ",
     "step3Body": "Nweta ụgwọ ọrụ W3TR na asambodo enyere gị aka nyochaa ka ị na-aga n'ihu — ihe akaebe ndị nna ụlọ ọrụ nwere ike ịtụkwasị obi.",
     "ctaHeading": "Ị dịla njikere iwu ọdịnihu gị?",
     "ctaSubtitle": "Sonyere puku ndị Naịjirịa na-amụ nka teknụzụ ọhụrụ — ọ bụ n'efu ka ọ na-amalite.",
-    "ctaButton": "Mepụta akaụntụ gị n'efu"
+    "ctaButton": "Mepụta akaụntụ gị n'efu",
+    "countryReadyHeading": "Emere Maka Naịjirịa. Njikere Maka Ụwa.",
+    "countryReadyBody": "Ndị mmụta, asụsụ, na iwu mba ọ bụla dị iche — ọ bụ ya mere e ji wuo ikpo okwu a ka a haziri ya maka mba ọ bụla mgbe ọ bụla achọrọ: asụsụ, steeti na mpaghara, na ntọala nrube isi niile ka enwere ike ịgbanwe. Anyị na-edozi nsogbu nka teknụzụ Naịjirịa mbụ, n'ihi na Naịjirịa bụ ebe anyị nọ — ma e wughị usoro a ka ọ kwụsị naanị ebe ahụ."
   },
   "auth": {
     "welcomeBack": "Nnọọ Ọzọ",

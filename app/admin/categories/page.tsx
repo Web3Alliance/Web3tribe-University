@@ -27,7 +27,7 @@ export default async function AdminCategoriesPage() {
           <CardTitle className="text-base">Add category</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={handleCreate} className="flex gap-2">
+          <form action={handleCreate} className="flex flex-col gap-2 sm:flex-row">
             <div className="flex-1 space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input id="name" name="name" placeholder="e.g. Renewable Energy" required />
