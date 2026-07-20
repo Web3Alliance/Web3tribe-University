@@ -84,6 +84,8 @@ export interface Profile {
   two_factor_enabled: boolean;
   onboarding_completed: boolean;
   theme_preference: "light" | "dark" | "system";
+  /** Opt-in consent: only true if the student explicitly enabled it in Settings. Off by default. */
+  visible_for_opportunities: boolean;
   last_seen_at: string | null;
   created_at: string;
   updated_at: string;
@@ -353,6 +355,31 @@ export interface Organization {
   website_url: string | null;
   seats_purchased: number;
   is_verified: boolean;
+}
+
+export interface Opportunity {
+  id: string;
+  organization_id: string;
+  title: string;
+  description: string | null;
+  opportunity_type: "job" | "gig" | "apprenticeship" | "internship";
+  /** Null means remote/anywhere. */
+  location_state: string | null;
+  required_course_ids: string[];
+  application_method: string | null;
+  status: "open" | "closed";
+  created_at: string;
+  expires_at: string | null;
+  organization?: Pick<Organization, "name">;
+}
+
+export interface OpportunityApplication {
+  id: string;
+  opportunity_id: string;
+  student_id: string;
+  status: "interested" | "shortlisted" | "closed";
+  created_at: string;
+  profile?: Pick<Profile, "full_name" | "email" | "state_region">;
 }
 
 export interface DonationCampaign {

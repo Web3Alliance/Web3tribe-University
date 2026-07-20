@@ -24,6 +24,7 @@ import {
   Building2,
   ClipboardList,
   GraduationCap,
+  Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/lib/types";
@@ -38,6 +39,7 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   student: [
     { href: "/student/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/student/courses", label: "Browse Courses", icon: BookOpen },
+    { href: "/student/opportunities", label: "Opportunities", icon: Briefcase },
     { href: "/student/wishlist", label: "Wishlist", icon: Heart },
     { href: "/student/wallet", label: "W3TR Wallet", icon: Wallet },
     { href: "/student/certificates", label: "Certificates", icon: Award },
@@ -56,6 +58,7 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   organization: [
     { href: "/organization/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/organization/programs", label: "Programs", icon: ClipboardList },
+    { href: "/organization/opportunities", label: "Opportunities", icon: Briefcase },
     { href: "/organization/learners", label: "Learners", icon: GraduationCap },
     { href: "/student/settings", label: "Settings", icon: Settings },
   ],
