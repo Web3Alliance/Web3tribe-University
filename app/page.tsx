@@ -50,7 +50,7 @@ export default async function LandingPage() {
 
   return (
     <main className="flex flex-col">
-      <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-border bg-card/80 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between p-4">
           <span className="flex items-center gap-2 text-lg font-bold text-primary">
             <Logo size={40} priority />

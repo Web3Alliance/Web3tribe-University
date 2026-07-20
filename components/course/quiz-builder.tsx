@@ -211,7 +211,7 @@ function AddQuestionForm({ courseId, quizId, onDone }: { courseId: string; quizI
         <RadioGroup
           value={questionType}
           onValueChange={(v) => setQuestionType(v as "single_choice" | "short_answer")}
-          className="flex gap-4"
+          className="flex flex-wrap gap-4"
         >
           <label className="flex cursor-pointer items-center gap-2 text-sm">
             <RadioGroupItem value="single_choice" id="type-choice" />

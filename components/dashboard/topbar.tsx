@@ -37,7 +37,7 @@ export function DashboardTopbar({ role, w3trBalance }: { role: UserRole; w3trBal
   const t = useTranslations("languageSwitcher");
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-border bg-card/80 px-3 backdrop-blur sm:gap-4 sm:px-4">
+    <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-2 border-b border-border bg-card/80 px-3 pt-[env(safe-area-inset-top)] backdrop-blur sm:gap-4 sm:px-4">
       <div className="flex items-center gap-2">
         <MobileNav role={role} />
         <Link href="/" className="flex items-center gap-2 truncate font-bold text-primary">

@@ -77,7 +77,7 @@ export function CurriculumBuilder({ courseId, sections, quizzesByLessonId, final
             />
           ))}
 
-          <div className="flex gap-2 rounded-lg border border-dashed border-border p-3">
+          <div className="flex flex-col gap-2 rounded-lg border border-dashed border-border p-3 sm:flex-row">
             <Input
               placeholder="New section title (e.g. Getting Started)"
               value={newSectionTitle}

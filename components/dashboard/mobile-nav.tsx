@@ -33,7 +33,7 @@ export function MobileNav({ role }: { role: UserRole }) {
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 md:hidden" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed inset-y-0 left-0 z-50 h-full w-72 max-w-[85vw] overflow-y-auto border-r border-border bg-card shadow-lg duration-200",
+            "fixed inset-y-0 left-0 z-50 h-full w-72 max-w-[85vw] overflow-y-auto border-r border-border bg-card pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-lg duration-200",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
             "md:hidden"
           )}
