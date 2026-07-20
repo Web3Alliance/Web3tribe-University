@@ -51,19 +51,25 @@ export default async function LandingPage() {
   return (
     <main className="flex flex-col">
       <header className="sticky top-0 z-40 border-b border-border bg-card/80 pt-[env(safe-area-inset-top)] backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between p-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between p-3 sm:p-4">
           <span className="flex items-center gap-2 text-lg font-bold text-primary">
-            <Logo size={40} priority />
-            Web3tribe University
+            <Logo size={36} priority />
+            <span className="sm:hidden">W3tribe</span>
+            <span className="hidden sm:inline">Web3tribe University</span>
           </span>
-          <nav className="flex items-center gap-2">
+          <nav className="flex items-center gap-1 sm:gap-2">
             <LanguageSwitcher />
-            <ThemeToggle />
-            <Button variant="ghost" asChild>
+            <div className="hidden sm:block">
+              <ThemeToggle />
+            </div>
+            <Button variant="ghost" size="sm" className="px-2 sm:h-10 sm:px-4 sm:py-2 sm:text-sm" asChild>
               <Link href="/login">{tCommon("login")}</Link>
             </Button>
-            <Button asChild>
-              <Link href="/register">Get started</Link>
+            <Button size="sm" className="px-3 sm:h-10 sm:px-4 sm:py-2 sm:text-sm" asChild>
+              <Link href="/register">
+                <span className="sm:hidden">Join</span>
+                <span className="hidden sm:inline">Get started</span>
+              </Link>
             </Button>
           </nav>
         </div>
