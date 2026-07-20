@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/rbac";
 import { getBiodataGateStatus } from "@/lib/actions/biodata";
 import { getRewardEngine } from "@/lib/reward-engine";
+import { payInstructorEarnings } from "@/lib/instructor-earnings";
 
 export interface CohortFormState {
   error: string | null;
@@ -155,7 +156,11 @@ export async function enrollInCohortAction(cohortId: string, courseSlug: string)
   }
 
   // Same premium-course price enforcement as direct enrollment.
-  const { data: course } = await supabase.from("courses").select("price_w3tr").eq("id", cohort.course_id).single();
+  const { data: course } = await supabase
+    .from("courses")
+    .select("price_w3tr, instructor_id")
+    .eq("id", cohort.course_id)
+    .single();
   const price = Number(course?.price_w3tr ?? 0);
 
   if (price > 0) {
@@ -173,6 +178,16 @@ export async function enrollInCohortAction(cohortId: string, courseSlug: string)
         referenceId: cohortId,
         description: `Joined premium course cohort`,
       });
+      if (course?.instructor_id) {
+        await payInstructorEarnings(rewardEngine, {
+          price,
+          courseId: cohort.course_id,
+          courseAuthorId: course.instructor_id,
+          cohortInstructorId: cohort.instructor_id,
+          referenceTable: "cohorts",
+          referenceId: cohortId,
+        });
+      }
     } catch (e) {
       return { error: e instanceof Error ? e.message : "Failed to charge W3TR for this cohort." };
     }

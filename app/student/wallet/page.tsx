@@ -27,6 +27,7 @@ const TYPE_LABELS: Record<string, string> = {
   spend: "Spent",
   donation_conversion: "Donation conversion",
   token_purchase: "Purchased",
+  instructor_earning: "Course earnings",
   adjustment: "Adjustment",
 };
 

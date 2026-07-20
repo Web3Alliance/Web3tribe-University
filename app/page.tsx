@@ -83,11 +83,11 @@ export default async function LandingPage() {
           {t("heroLine1")} <span className="text-primary">{t("heroLine2")}</span>
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">{t("heroSubtitle")}</p>
-        <div className="mt-8 flex justify-center gap-3">
-          <Button size="lg" asChild>
+        <div className="mt-8 flex flex-col justify-center gap-3 px-4 sm:flex-row sm:px-0">
+          <Button size="lg" className="w-full sm:w-auto" asChild>
             <Link href="/register">{t("startLearningFree")}</Link>
           </Button>
-          <Button size="lg" variant="outline" asChild>
+          <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
             <Link href="/student/courses">{t("browseCourses")}</Link>
           </Button>
         </div>

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/rbac";
 import { getBiodataGateStatus } from "@/lib/actions/biodata";
 import { getRewardEngine } from "@/lib/reward-engine";
+import { payInstructorEarnings } from "@/lib/instructor-earnings";
 
 export async function enrollInCourse(courseId: string, courseSlug: string) {
   const profile = await getCurrentProfile();
@@ -74,7 +75,7 @@ export async function enrollInCourse(courseId: string, courseSlug: string) {
   // student doesn't have enough, we don't just fail — we tell the UI exactly
   // how much more they need so it can offer the "Buy W3TR" flow instead of a
   // dead-end error.
-  const { data: course } = await supabase.from("courses").select("price_w3tr").eq("id", courseId).single();
+  const { data: course } = await supabase.from("courses").select("price_w3tr, instructor_id").eq("id", courseId).single();
   const price = Number(course?.price_w3tr ?? 0);
 
   if (price > 0) {
@@ -92,6 +93,15 @@ export async function enrollInCourse(courseId: string, courseSlug: string) {
         referenceId: courseId,
         description: `Enrolled in premium course`,
       });
+      if (course?.instructor_id) {
+        await payInstructorEarnings(rewardEngine, {
+          price,
+          courseId,
+          courseAuthorId: course.instructor_id,
+          referenceTable: "courses",
+          referenceId: courseId,
+        });
+      }
     } catch (e) {
       // The database's own negative-balance guard is the final safety net
       // in case of a race condition between the balance check above and

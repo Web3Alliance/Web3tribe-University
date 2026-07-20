@@ -57,6 +57,7 @@ export type W3trTransactionType =
   | "spend"
   | "donation_conversion"
   | "token_purchase"
+  | "instructor_earning"
   | "adjustment";
 
 export type DonationStatus = "pending" | "confirmed" | "failed" | "refunded";
