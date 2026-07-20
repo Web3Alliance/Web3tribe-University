@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getRewardEngine } from "@/lib/reward-engine";
 import { requireRole } from "@/lib/rbac";
+import { generateCourseCoverSvg } from "@/lib/course-cover";
 
 export async function moderateCourseAction(
   courseId: string,
@@ -40,8 +41,41 @@ export async function moderateCourseAction(
 
   // Reward the instructor for a course being approved & published
   if (action === "approve") {
-    const { data: course } = await supabase.from("courses").select("instructor_id,title").eq("id", courseId).single();
+    const { data: course } = await supabase
+      .from("courses")
+      .select("instructor_id, title, category:categories(name)")
+      .eq("id", courseId)
+      .single();
     if (course) {
+      // Generate the official, on-brand cover for this course. This
+      // deliberately OVERWRITES whatever thumbnail was there before (whether
+      // instructor-uploaded or a prior auto-generated one), so every
+      // approved course carries a consistent, official Web3tribe University
+      // look rather than instructor-to-instructor variation in design skill.
+      const categoryField = course.category as unknown;
+      const categoryName = Array.isArray(categoryField)
+        ? (categoryField as { name: string }[])[0]?.name
+        : (categoryField as { name: string } | null)?.name;
+
+      const svg = generateCourseCoverSvg(course.title, categoryName ?? null);
+      const coverPath = `official-covers/${courseId}.svg`;
+      const { error: uploadError } = await supabase.storage
+        .from("course-images")
+        .upload(coverPath, Buffer.from(svg, "utf-8"), {
+          contentType: "image/svg+xml",
+          upsert: true,
+        });
+
+      if (!uploadError) {
+        const { data: publicUrlData } = supabase.storage.from("course-images").getPublicUrl(coverPath);
+        await supabase.from("courses").update({ thumbnail_url: publicUrlData.publicUrl }).eq("id", courseId);
+      } else {
+        // Don't let a cover-generation hiccup block the actual approval —
+        // the course is still published either way, just without (or with
+        // its prior) thumbnail; log it for visibility instead.
+        console.error("Failed to generate/upload official course cover:", uploadError.message);
+      }
+
       const rewardEngine = getRewardEngine(supabase);
       await rewardEngine.award(course.instructor_id, "course_publish_bonus", 100, {
         referenceTable: "courses",
