@@ -3,6 +3,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/rbac";
 import { slugify } from "@/lib/utils";
+import { notifyUser } from "@/lib/notify";
+import { sendEmail, emailLayout } from "@/lib/email";
 
 async function assertOwnsOrgOrAdmin(organizationId: string) {
   const profile = await getCurrentProfile();
@@ -39,7 +41,7 @@ export async function inviteLearnerAction(organizationId: string, email: string)
   const { ok, supabase } = await assertOwnsOrgOrAdmin(organizationId);
   if (!ok || !supabase) return { error: "Not authorized." };
 
-  const { data: existingProfile } = await supabase.from("profiles").select("id").eq("email", email).maybeSingle();
+  const { data: existingProfile } = await supabase.from("profiles").select("id, full_name").eq("email", email).maybeSingle();
 
   // Guard against inviting the same person twice — the unique constraint on
   // (organization_id, profile_id) only protects already-registered users;
@@ -60,6 +62,48 @@ export async function inviteLearnerAction(organizationId: string, email: string)
     status: existingProfile ? "active" : "invited",
   });
   if (error) return { error: error.message };
+
+  // Actually DELIVER the invitation. Previously this action only wrote a
+  // membership row — invitees never received an email or notification and
+  // had no way of knowing they'd been invited at all.
+  const { data: orgRecord } = await supabase.from("organizations").select("name").eq("id", organizationId).single();
+  const orgName = orgRecord?.name ?? "an organization";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+
+  if (existingProfile) {
+    // Registered user: in-app notification + email pointing at their dashboard.
+    await notifyUser({
+      profileId: existingProfile.id,
+      title: `You've been added to ${orgName}`,
+      body: `${orgName} added you as a learner. Programs they assign you to will appear in your courses.`,
+      linkUrl: "/student/dashboard",
+    });
+    await sendEmail({
+      to: email,
+      subject: `${orgName} added you on Web3tribe University`,
+      html: emailLayout(
+        `You've been added to ${orgName}`,
+        `<p>Hi ${existingProfile.full_name ?? "there"},</p>
+         <p><strong>${orgName}</strong> has added you as a learner on Web3tribe University. Any programs they assign you to will show up in your courses automatically.</p>`,
+        `${siteUrl}/student/dashboard`,
+        "Open your dashboard"
+      ),
+    });
+  } else {
+    // Not yet registered: email is the only channel we have — invite them
+    // to create an account with this same email so the membership links up.
+    await sendEmail({
+      to: email,
+      subject: `${orgName} invited you to Web3tribe University`,
+      html: emailLayout(
+        `${orgName} invited you to learn on Web3tribe University`,
+        `<p><strong>${orgName}</strong> has invited you to join Web3tribe University as a learner.</p>
+         <p>Create your free account using this email address (<strong>${email}</strong>) and your invitation will be waiting for you.</p>`,
+        `${siteUrl}/register`,
+        "Create your account"
+      ),
+    });
+  }
 
   revalidatePath("/organization/learners");
   return { error: null };

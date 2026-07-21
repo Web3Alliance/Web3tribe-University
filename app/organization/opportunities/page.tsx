@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { NIGERIAN_STATES } from "@/lib/nigerian-states";
+import { PAY_CURRENCIES, PAY_PERIODS, formatPay } from "@/lib/currencies";
 import { createOpportunityAction } from "@/lib/actions/opportunities";
 
 export const metadata = { title: "Opportunities" };
@@ -101,6 +102,36 @@ export default async function OrganizationOpportunitiesPage() {
               </div>
             </div>
             <div className="space-y-2">
+              <Label>Expected pay (required — shown to students in your country&apos;s currency)</Label>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Input name="payAmount" type="number" min="1" step="0.01" placeholder="e.g. 150000" required />
+                <Select name="payCurrency" defaultValue="NGN">
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAY_CURRENCIES.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select name="payPeriod" defaultValue="month">
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAY_PERIODS.map((p) => (
+                      <SelectItem key={p.value} value={p.value}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="applicationMethod">How should students apply?</Label>
               <Input id="applicationMethod" name="applicationMethod" placeholder="Email, phone number, or a link" />
             </div>
@@ -133,6 +164,7 @@ export default async function OrganizationOpportunitiesPage() {
                   <p className="font-medium">{o.title}</p>
                   <p className="text-sm text-muted-foreground capitalize">
                     {o.opportunity_type} · {o.location_state ?? "Remote/anywhere"}
+                    {formatPay(o.pay_amount, o.pay_currency, o.pay_period) ? ` · ${formatPay(o.pay_amount, o.pay_currency, o.pay_period)}` : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

@@ -56,6 +56,7 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
     { href: "/instructor/cohorts/new", label: "Start a Cohort", icon: Users },
     { href: "/instructor/cohorts", label: "My Cohorts", icon: CalendarDays },
     { href: "/instructor/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/student/notifications", label: "Notifications", icon: Bell },
     { href: "/student/settings", label: "Settings", icon: Settings },
   ],
   organization: [
@@ -63,6 +64,7 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
     { href: "/organization/programs", label: "Programs", icon: ClipboardList },
     { href: "/organization/opportunities", label: "Opportunities", icon: Briefcase },
     { href: "/organization/learners", label: "Learners", icon: GraduationCap },
+    { href: "/student/notifications", label: "Notifications", icon: Bell },
     { href: "/student/settings", label: "Settings", icon: Settings },
   ],
   moderator: [

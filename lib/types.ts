@@ -387,6 +387,11 @@ export interface Opportunity {
   location_state: string | null;
   required_course_ids: string[];
   application_method: string | null;
+  /** Expected pay — required for all new opportunities, in the opportunity country's currency. */
+  pay_amount: number | null;
+  /** ISO 4217 code, e.g. "NGN". */
+  pay_currency: string;
+  pay_period: "hour" | "day" | "week" | "month" | "year" | "project";
   status: "open" | "closed";
   created_at: string;
   expires_at: string | null;
@@ -397,9 +402,15 @@ export interface OpportunityApplication {
   id: string;
   opportunity_id: string;
   student_id: string;
-  status: "interested" | "shortlisted" | "closed";
+  status: "interested" | "shortlisted" | "accepted" | "rejected" | "closed";
   created_at: string;
-  profile?: Pick<Profile, "full_name" | "email" | "state_region">;
+  /** Required next-steps message the organization wrote when shortlisting. */
+  shortlist_message: string | null;
+  shortlisted_at: string | null;
+  /** Student's note when responding to a shortlist; required for rejections. */
+  response_note: string | null;
+  responded_at: string | null;
+  profile?: Pick<Profile, "full_name" | "email" | "avatar_url" | "state_region" | "country" | "bio">;
 }
 
 export interface DonationCampaign {

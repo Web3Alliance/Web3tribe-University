@@ -25,12 +25,12 @@ Copy `.env.example` to `.env.local` for local development. In production (Netlif
 | `FLUTTERWAVE_SECRET_KEY` | Not yet wired to a route handler — the `donations_flutterwave_enabled` feature flag exists as a placeholder for this future integration, following the same pattern as `lib/paystack.ts`. |
 | `NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY` | Same as above. |
 
-## Optional — Email
+## Email — now used by the app (recommended in production)
 
 | Variable | Notes |
 |---|---|
-| `RESEND_API_KEY` | Only needed if you move off Supabase's built-in auth email sending to a custom SMTP/API provider for verification and password-reset emails. Configure the provider itself in Supabase Dashboard → Authentication → SMTP Settings; this key is a placeholder for any additional transactional email you build directly (e.g. course-approval notifications) beyond what Supabase Auth sends natively. |
-| `EMAIL_FROM` | Display name/address for any custom transactional email you send directly. |
+| `RESEND_API_KEY` | **Now actively used** by `lib/email.ts` for transactional emails the app sends directly: learner invitations, "new applicant" alerts to organizations, shortlist notifications to students (with the organization's next-steps message), and offer accepted/declined alerts back to organizations. Without it, these emails are skipped with a server log — in-app notifications for the same events still work fully. Supabase Auth continues to send verification/password-reset emails independently of this key. |
+| `EMAIL_FROM` | From name/address for the above, e.g. `Web3tribe University <no-reply@yourdomain.com>`. The domain must be verified in your Resend account. |
 
 ## Optional — Push Notifications
 

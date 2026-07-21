@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { closeOpportunityAction, updateApplicationStatusAction } from "@/lib/actions/opportunities";
+import { closeOpportunityAction } from "@/lib/actions/opportunities";
+import { formatPay } from "@/lib/currencies";
+import { ApplicantReviewCard, type ApplicationForReview } from "@/components/opportunities/applicant-review-card";
 
 export const metadata = { title: "Opportunity" };
 
@@ -29,19 +31,16 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       : Promise.resolve({ data: [] as { id: string; title: string }[] }),
     supabase
       .from("opportunity_applications")
-      .select("*, profile:profiles(full_name, email, state_region)")
+      .select("*, profile:profiles(full_name, email, avatar_url, state_region, country, bio)")
       .eq("opportunity_id", opportunityId)
       .order("created_at", { ascending: false }),
   ]);
 
+  const pay = formatPay(opportunity.pay_amount, opportunity.pay_currency, opportunity.pay_period);
+
   async function handleClose() {
     "use server";
     await closeOpportunityAction(opportunityId, opportunity!.organization_id);
-  }
-
-  async function handleShortlist(applicationId: string) {
-    "use server";
-    await updateApplicationStatusAction(applicationId, opportunity!.organization_id, "shortlisted");
   }
 
   return (
@@ -56,6 +55,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           <p className="text-muted-foreground capitalize">
             {opportunity.opportunity_type} · {opportunity.location_state ?? "Remote/anywhere"}
           </p>
+          {pay && <p className="text-sm font-medium">{pay}</p>}
         </div>
         <Badge variant={opportunity.status === "open" ? "success" : "outline"} className="capitalize">
           {opportunity.status}
@@ -89,24 +89,11 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
             </p>
           ) : (
             (applications ?? []).map((a) => (
-              <div key={a.id} className="flex items-center justify-between rounded-md border border-border p-3 text-sm">
-                <div>
-                  <p className="font-medium">{a.profile?.full_name ?? a.profile?.email}</p>
-                  <p className="text-xs text-muted-foreground">{a.profile?.state_region ?? "No location set"}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={a.status === "shortlisted" ? "success" : "outline"} className="capitalize">
-                    {a.status}
-                  </Badge>
-                  {a.status !== "shortlisted" && (
-                    <form action={handleShortlist.bind(null, a.id)}>
-                      <Button size="sm" variant="outline" type="submit">
-                        Shortlist
-                      </Button>
-                    </form>
-                  )}
-                </div>
-              </div>
+              <ApplicantReviewCard
+                key={a.id}
+                application={a as unknown as ApplicationForReview}
+                organizationId={opportunity.organization_id}
+              />
             ))
           )}
         </CardContent>

@@ -33,6 +33,28 @@ export async function updateProfileAction(
   return { error: null, success: true };
 }
 
+/**
+ * Saves an already-uploaded avatar's public URL onto the caller's profile.
+ * The file itself goes through /api/upload (bucket: "avatars"), which
+ * enforces auth, size, and MIME checks — this action only records the
+ * resulting URL. A profile photo is required before a student can express
+ * interest in opportunities, since organizations review applicants by
+ * profile (photo included).
+ */
+export async function updateAvatarAction(avatarUrl: string): Promise<SettingsActionState> {
+  const profile = await getCurrentProfile();
+  if (!profile) return { error: "Not authenticated." };
+  if (!avatarUrl || !avatarUrl.startsWith("http")) return { error: "Invalid image URL." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("id", profile.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/student/settings");
+  revalidatePath("/", "layout");
+  return { error: null, success: true };
+}
+
 export async function updateThemePreferenceAction(theme: "light" | "dark" | "system") {
   const profile = await getCurrentProfile();
   if (!profile) return;
