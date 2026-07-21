@@ -20,11 +20,12 @@ export async function updateProfileAction(
   const bio = String(formData.get("bio") || "") || null;
   const country = String(formData.get("country") || "") || null;
   const stateRegion = String(formData.get("stateRegion") || "") || null;
+  const lga = String(formData.get("lga") || "") || null;
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("profiles")
-    .update({ full_name: fullName, username, bio, country, state_region: stateRegion })
+    .update({ full_name: fullName, username, bio, country, state_region: stateRegion, lga })
     .eq("id", profile.id);
 
   if (error) return { error: error.message };

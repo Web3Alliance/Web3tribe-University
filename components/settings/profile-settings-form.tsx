@@ -52,11 +52,15 @@ export function ProfileSettingsForm({ profile }: { profile: Profile }) {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Used to show you hybrid/in-person cohorts happening near you. Fully online courses are shown to
-                everyone regardless of location.
-              </p>
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lga">Local Government Area (LGA)</Label>
+            <Input id="lga" name="lga" defaultValue={profile.lga ?? ""} placeholder="e.g. Jos North" />
+            <p className="text-xs text-muted-foreground">
+              Used to show you hybrid/in-person cohorts happening near you. Fully online courses are shown to
+              everyone regardless of location.
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="bio">Bio</Label>

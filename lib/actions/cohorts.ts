@@ -50,6 +50,7 @@ export async function createCohortAction(
   }
 
   const stateRegion = String(formData.get("stateRegion") || "") || null;
+  const lga = String(formData.get("lga") || "") || null;
   const address = String(formData.get("address") || "") || null;
   const startDate = String(formData.get("startDate") || "");
   const endDate = String(formData.get("endDate") || "") || null;
@@ -60,6 +61,9 @@ export async function createCohortAction(
   if (course.delivery_mode !== "online" && !stateRegion) {
     return { error: `This course is ${course.delivery_mode} — a state is required to start a cohort for it.` };
   }
+  if (course.delivery_mode !== "online" && !lga) {
+    return { error: `This course is ${course.delivery_mode} — a local government area is required to start a cohort for it.` };
+  }
   if (new Date(startDate) < new Date(new Date().toDateString())) {
     return { error: "Start date can't be in the past." };
   }
@@ -69,6 +73,7 @@ export async function createCohortAction(
     instructor_id: profile.id,
     title,
     state_region: course.delivery_mode === "online" ? null : stateRegion,
+    lga: course.delivery_mode === "online" ? null : lga,
     address: course.delivery_mode === "online" ? null : address,
     max_students: maxStudents,
     start_date: startDate,

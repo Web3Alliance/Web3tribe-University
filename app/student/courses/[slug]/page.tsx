@@ -202,7 +202,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
                               </>
                             ) : (
                               <>
-                                <MapPin className="h-3.5 w-3.5" /> {cohort.state_region}
+                                <MapPin className="h-3.5 w-3.5" /> {cohort.lga ? `${cohort.lga}, ` : ""}
+                                {cohort.state_region}
                                 {cohort.address ? ` · ${cohort.address}` : ""}
                               </>
                             )}

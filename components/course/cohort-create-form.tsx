@@ -83,7 +83,11 @@ export function CohortCreateForm({ courses }: { courses: CourseOption[] }) {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="address">Address (optional)</Label>
+            <Label htmlFor="lga">Local Government Area (LGA)</Label>
+            <Input id="lga" name="lga" placeholder="e.g. Jos North" required />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="address">Learning center address (optional)</Label>
             <Input id="address" name="address" placeholder="Venue / street address" />
           </div>
         </div>

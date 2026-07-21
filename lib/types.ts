@@ -76,6 +76,7 @@ export interface Profile {
   phone_verified: boolean;
   country: string | null;
   state_region: string | null;
+  lga: string | null;
   timezone: string;
   is_instructor_verified: boolean;
   is_active: boolean;
@@ -193,6 +194,25 @@ export interface CourseSection {
   course_id: string;
   title: string;
   display_order: number;
+}
+
+export interface Cohort {
+  id: string;
+  course_id: string;
+  instructor_id: string;
+  title: string | null;
+  /** Null for online cohorts (delivery mode belongs to the course, not the cohort). */
+  state_region: string | null;
+  lga: string | null;
+  address: string | null;
+  max_students: number | null;
+  start_date: string;
+  end_date: string | null;
+  status: "upcoming" | "in_progress" | "completed" | "cancelled";
+  created_at: string;
+  updated_at: string;
+  course?: Pick<Course, "title" | "slug" | "delivery_mode">;
+  instructor?: Pick<Profile, "full_name">;
 }
 
 export interface Lesson {
