@@ -8,7 +8,12 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { closeOpportunityAction } from "@/lib/actions/opportunities";
 import { formatPay } from "@/lib/currencies";
-import { ApplicantReviewCard, type ApplicationForReview } from "@/components/opportunities/applicant-review-card";
+import {
+  ApplicantReviewCard,
+  type ApplicationForReview,
+  type ApplicantBiodata,
+  type MatchedCourse,
+} from "@/components/opportunities/applicant-review-card";
 
 export const metadata = { title: "Opportunity" };
 
@@ -31,10 +36,39 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       : Promise.resolve({ data: [] as { id: string; title: string }[] }),
     supabase
       .from("opportunity_applications")
-      .select("*, profile:profiles(full_name, email, avatar_url, state_region, country, bio)")
+      .select("*, profile:profiles(full_name, email, phone, avatar_url, state_region, country, bio)")
       .eq("opportunity_id", opportunityId)
       .order("created_at", { ascending: false }),
   ]);
+
+  // For every applicant in one pass: which REQUIRED courses they completed
+  // (and when), plus their biodata — both readable by this org thanks to the
+  // applicant-scoped policies in migration 0014.
+  const applicantIds = (applications ?? []).map((a) => a.student_id);
+  const [{ data: applicantEnrollments }, { data: applicantBiodata }] = await Promise.all([
+    applicantIds.length && requiredCourseIds.length
+      ? supabase
+          .from("enrollments")
+          .select("student_id, course_id, completed_at")
+          .in("student_id", applicantIds)
+          .in("course_id", requiredCourseIds)
+          .eq("status", "completed")
+      : Promise.resolve({ data: [] as { student_id: string; course_id: string; completed_at: string | null }[] }),
+    applicantIds.length
+      ? supabase.from("student_biodata").select("*").in("profile_id", applicantIds)
+      : Promise.resolve({ data: [] as ({ profile_id: string } & ApplicantBiodata)[] }),
+  ]);
+
+  const courseTitleById = new Map((requiredCourses ?? []).map((c) => [c.id, c.title]));
+  const matchedCoursesByStudent = new Map<string, MatchedCourse[]>();
+  for (const e of applicantEnrollments ?? []) {
+    const list = matchedCoursesByStudent.get(e.student_id) ?? [];
+    list.push({ title: courseTitleById.get(e.course_id) ?? "Course", completedAt: e.completed_at });
+    matchedCoursesByStudent.set(e.student_id, list);
+  }
+  const biodataByStudent = new Map(
+    ((applicantBiodata ?? []) as ({ profile_id: string } & ApplicantBiodata)[]).map((b) => [b.profile_id, b])
+  );
 
   const pay = formatPay(opportunity.pay_amount, opportunity.pay_currency, opportunity.pay_period);
 
@@ -93,6 +127,9 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                 key={a.id}
                 application={a as unknown as ApplicationForReview}
                 organizationId={opportunity.organization_id}
+                matchedCourses={matchedCoursesByStudent.get(a.student_id) ?? []}
+                totalRequired={requiredCourseIds.length}
+                biodata={biodataByStudent.get(a.student_id) ?? null}
               />
             ))
           )}

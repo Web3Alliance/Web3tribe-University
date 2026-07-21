@@ -2,7 +2,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { LogOut, Settings, Bell, Sun, Moon, Languages } from "lucide-react";
+import { LogOut, Settings, Sun, Moon, Languages } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/auth-context";
 import { logoutAction } from "@/lib/actions/auth";
@@ -11,6 +11,7 @@ import { SUPPORTED_LOCALES, LOCALE_LABELS, type SupportedLocale } from "@/i18n/l
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,11 +64,7 @@ export function DashboardTopbar({ role, w3trBalance }: { role: UserRole; w3trBal
           <ThemeToggle />
         </div>
 
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/student/notifications" aria-label="Notifications">
-            <Bell className="h-4 w-4" />
-          </Link>
-        </Button>
+        <NotificationBell />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
