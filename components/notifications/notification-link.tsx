@@ -2,6 +2,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { markNotificationRead } from "@/lib/actions/notifications";
+import { broadcastNotificationsChanged } from "@/lib/notification-events";
 
 export function NotificationLink({
   href,
@@ -18,6 +19,7 @@ export function NotificationLink({
       onClick={() => {
         // Fire-and-forget: don't block navigation on this completing.
         markNotificationRead(notificationId);
+        broadcastNotificationsChanged();
       }}
     >
       {children}

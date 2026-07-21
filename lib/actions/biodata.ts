@@ -71,6 +71,7 @@ export async function submitBiodataAction(
   if (error) return { error: error.message };
 
   revalidatePath("/student/biodata");
+  revalidatePath("/student/settings");
   return { error: null, success: true };
 }
 

@@ -9,10 +9,12 @@ export function ExpressInterestButton({
   opportunityId,
   alreadyApplied,
   visibilityOn,
+  hasPhoto,
 }: {
   opportunityId: string;
   alreadyApplied: boolean;
   visibilityOn: boolean;
+  hasPhoto: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
@@ -28,7 +30,7 @@ export function ExpressInterestButton({
   return (
     <Button
       size="sm"
-      disabled={isPending || !visibilityOn}
+      disabled={isPending || !visibilityOn || !hasPhoto}
       className="w-full sm:w-auto"
       onClick={() =>
         startTransition(async () => {

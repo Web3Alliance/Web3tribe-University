@@ -1,12 +1,12 @@
 import { getCurrentProfile } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
 import { formatRelativeTime } from "@/lib/utils";
-import { markNotificationRead, markAllNotificationsRead } from "@/lib/actions/notifications";
 import { NotificationLink } from "@/components/notifications/notification-link";
+import { MarkReadButton } from "@/components/notifications/mark-read-button";
+import { MarkAllReadButton } from "@/components/notifications/mark-all-read-button";
 
 export const metadata = { title: "Notifications" };
 
@@ -30,13 +30,7 @@ export default async function NotificationsPage() {
           <h1 className="text-2xl font-bold">Notifications</h1>
           <p className="text-muted-foreground">{unreadCount} unread</p>
         </div>
-        {unreadCount > 0 && (
-          <form action={markAllNotificationsRead}>
-            <Button type="submit" variant="outline" size="sm">
-              Mark all as read
-            </Button>
-          </form>
-        )}
+        {unreadCount > 0 && <MarkAllReadButton />}
       </div>
 
       <div className="space-y-2">
@@ -69,11 +63,7 @@ export default async function NotificationsPage() {
                   {content}
                 </NotificationLink>
               ) : (
-                <form action={markNotificationRead.bind(null, n.id)}>
-                  <button type="submit" className="w-full text-left">
-                    {content}
-                  </button>
-                </form>
+                <MarkReadButton notificationId={n.id}>{content}</MarkReadButton>
               )}
             </Card>
           );

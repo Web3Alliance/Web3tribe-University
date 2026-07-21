@@ -4,13 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/notification-events";
 
 /**
  * Topbar bell with a live unread badge. The bell previously gave no visual
  * cue at all that new notifications had arrived — users only discovered them
  * by clicking through. This polls the existing /api/notifications endpoint
- * (mount, every 60s, on tab refocus, and on route change so the badge clears
- * right after visiting the notifications page and marking things read).
+ * (mount, every 60s, on tab refocus, and on route change), AND listens for
+ * an in-tab "notifications-changed" event so the badge updates instantly
+ * when something is marked read on the Notifications page itself — that
+ * page doesn't change the URL, so route-change alone wouldn't catch it.
  */
 export function NotificationBell() {
   const pathname = usePathname();
@@ -33,11 +36,14 @@ export function NotificationBell() {
     const initial = setTimeout(refresh, 0);
     const interval = setInterval(refresh, 60_000);
     const onFocus = () => refresh();
+    const onNotificationsChanged = () => refresh();
     window.addEventListener("focus", onFocus);
+    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, onNotificationsChanged);
     return () => {
       clearTimeout(initial);
       clearInterval(interval);
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, onNotificationsChanged);
     };
   }, [refresh, pathname]);
 

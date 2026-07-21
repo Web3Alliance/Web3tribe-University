@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/rbac";
 import { notifyUser } from "@/lib/notify";
 import { sendEmail, emailLayout } from "@/lib/email";
+import { getGenuinelyCompletedCourseIds } from "@/lib/opportunity-matching";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "";
 
@@ -126,17 +127,10 @@ export async function expressInterestAction(opportunityId: string) {
   if (opportunity.status !== "open") return { error: "This opportunity is no longer open." };
 
   const requiredCourseIds: string[] = opportunity.required_course_ids ?? [];
-  const { data: completed } = await supabase
-    .from("enrollments")
-    .select("course_id")
-    .eq("student_id", profile.id)
-    .eq("status", "completed")
-    .in("course_id", requiredCourseIds);
-
-  const completedIds = new Set((completed ?? []).map((e) => e.course_id));
-  const isFullyQualified = requiredCourseIds.every((id) => completedIds.has(id));
+  const genuinelyCompletedIds = await getGenuinelyCompletedCourseIds(supabase, profile.id, requiredCourseIds);
+  const isFullyQualified = requiredCourseIds.every((id) => genuinelyCompletedIds.has(id));
   if (!isFullyQualified) {
-    return { error: "You haven't completed all the courses this opportunity requires yet." };
+    return { error: "You haven't fully completed all the courses this opportunity requires yet — for courses with a final exam, that includes passing it." };
   }
 
   const { data: existing } = await supabase

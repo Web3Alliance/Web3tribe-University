@@ -8,6 +8,7 @@ import { MapPin, Briefcase, Banknote } from "lucide-react";
 import { ExpressInterestButton } from "@/components/opportunities/express-interest-button";
 import { ApplicationStatusCard, type MyApplication } from "@/components/opportunities/application-status-card";
 import { formatPay } from "@/lib/currencies";
+import { getGenuinelyCompletedCourseIds } from "@/lib/opportunity-matching";
 
 export const metadata = { title: "Opportunities" };
 
@@ -15,13 +16,12 @@ export default async function StudentOpportunitiesPage() {
   const profile = await getCurrentProfile();
   const supabase = await createClient();
 
-  const [{ data: openOpportunities }, { data: completedEnrollments }, { data: myApplications }] = await Promise.all([
+  const [{ data: openOpportunities }, { data: myApplications }] = await Promise.all([
     supabase
       .from("opportunities")
       .select("*, organization:organizations(name)")
       .eq("status", "open")
       .order("created_at", { ascending: false }),
-    supabase.from("enrollments").select("course_id").eq("student_id", profile!.id).eq("status", "completed"),
     // Full application rows (not just IDs) so the student can SEE the status
     // of every application — including shortlists they need to respond to.
     supabase
@@ -31,17 +31,25 @@ export default async function StudentOpportunitiesPage() {
       .order("created_at", { ascending: false }),
   ]);
 
-  const completedCourseIds = new Set((completedEnrollments ?? []).map((e) => e.course_id));
+  // Every required course across every open opportunity, checked ONCE up
+  // front against the same genuine-completion rule expressInterestAction
+  // enforces (enrollment complete AND, if the course has a final exam,
+  // that exam passed) — so a student never sees an opportunity listed as
+  // "matched" that the server would then reject them from applying to.
+  const allRequiredCourseIds = Array.from(
+    new Set((openOpportunities ?? []).flatMap((o) => (o.required_course_ids as string[] | null) ?? []))
+  );
+  const genuinelyCompletedCourseIds = await getGenuinelyCompletedCourseIds(supabase, profile!.id, allRequiredCourseIds);
   const appliedOpportunityIds = new Set((myApplications ?? []).map((a) => a.opportunity_id));
 
   // Only show opportunities this student is GENUINELY matched to — every
-  // required course must be in their completed set. This is computed here
-  // for display; expressInterestAction re-checks the same thing server-side
-  // before actually recording an application, so this filter is a UX
-  // convenience, not the real security boundary.
+  // required course must be genuinely completed (see helper above). This is
+  // computed here for display; expressInterestAction re-checks the exact
+  // same thing server-side before actually recording an application, so
+  // this filter is a UX convenience, not the real security boundary.
   const matched = (openOpportunities ?? []).filter((o) => {
     const required: string[] = o.required_course_ids ?? [];
-    return required.length > 0 && required.every((id) => completedCourseIds.has(id));
+    return required.length > 0 && required.every((id) => genuinelyCompletedCourseIds.has(id));
   });
 
   const applications: MyApplication[] = (myApplications ?? []).map((a) => {
@@ -152,6 +160,7 @@ export default async function StudentOpportunitiesPage() {
                   opportunityId={o.id}
                   alreadyApplied={alreadyApplied}
                   visibilityOn={!!profile?.visible_for_opportunities}
+                  hasPhoto={!!profile?.avatar_url}
                 />
               </CardContent>
             </Card>
