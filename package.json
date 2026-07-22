@@ -2,6 +2,12 @@
   "name": "web3tribe-university",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "author": "Dinfa Dashe <dinfadashe@gmail.com> (https://theweb3alliance.org)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Web3Alliance/Web3tribe-University"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
