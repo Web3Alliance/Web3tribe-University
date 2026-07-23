@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile, isAdmin } from "@/lib/rbac";
 import { TOKENOMICS } from "@/lib/tokenomics";
+import { flagCourseForReReviewIfPublished } from "@/lib/actions/course-review-flag";
 
 async function assertOwnsCourseOrAdmin(courseId: string) {
   const profile = await getCurrentProfile();
@@ -31,7 +32,7 @@ function revalidateStudentFacingPaths(courseSlug: string | null, lessonId: strin
  * quiz can always be retried.
  */
 export async function addLessonQuizAction(courseId: string, lessonId: string, title: string) {
-  const { ok, supabase } = await assertOwnsCourseOrAdmin(courseId);
+  const { ok, profile, supabase } = await assertOwnsCourseOrAdmin(courseId);
   if (!ok || !supabase) return { error: "Not authorized." };
 
   const { data: existing } = await supabase.from("quizzes").select("id").eq("lesson_id", lessonId).maybeSingle();
@@ -47,6 +48,7 @@ export async function addLessonQuizAction(courseId: string, lessonId: string, ti
     max_attempts: TOKENOMICS.MAX_QUIZ_ATTEMPTS,
   });
   if (error) return { error: error.message };
+  await flagCourseForReReviewIfPublished(supabase, courseId, isAdmin(profile!));
 
   revalidatePath(`/instructor/courses/${courseId}/edit`);
   revalidatePath(`/student/learn/${lessonId}`);
@@ -58,7 +60,7 @@ export async function addLessonQuizAction(courseId: string, lessonId: string, ti
  * is allowed per course.
  */
 export async function addFinalExamAction(courseId: string, title: string) {
-  const { ok, supabase } = await assertOwnsCourseOrAdmin(courseId);
+  const { ok, profile, supabase } = await assertOwnsCourseOrAdmin(courseId);
   if (!ok || !supabase) return { error: "Not authorized." };
 
   const { data: existing } = await supabase
@@ -78,6 +80,7 @@ export async function addFinalExamAction(courseId: string, title: string) {
     max_attempts: TOKENOMICS.MAX_QUIZ_ATTEMPTS,
   });
   if (error) return { error: error.message };
+  await flagCourseForReReviewIfPublished(supabase, courseId, isAdmin(profile!));
 
   const { data: course } = await supabase.from("courses").select("slug").eq("id", courseId).single();
   revalidatePath(`/instructor/courses/${courseId}/edit`);
@@ -86,7 +89,7 @@ export async function addFinalExamAction(courseId: string, title: string) {
 }
 
 export async function deleteQuizAction(courseId: string, quizId: string) {
-  const { ok, supabase } = await assertOwnsCourseOrAdmin(courseId);
+  const { ok, profile, supabase } = await assertOwnsCourseOrAdmin(courseId);
   if (!ok || !supabase) return { error: "Not authorized." };
 
   const { data: quiz } = await supabase.from("quizzes").select("lesson_id, courses(slug)").eq("id", quizId).maybeSingle();
@@ -95,6 +98,7 @@ export async function deleteQuizAction(courseId: string, quizId: string) {
     : (quiz?.courses as { slug: string } | null | undefined)?.slug;
 
   await supabase.from("quizzes").delete().eq("id", quizId);
+  await flagCourseForReReviewIfPublished(supabase, courseId, isAdmin(profile!));
   revalidatePath(`/instructor/courses/${courseId}/edit`);
   revalidateStudentFacingPaths(courseSlug ?? null, quiz?.lesson_id ?? null);
   return { error: null };
@@ -109,7 +113,7 @@ interface AddQuestionInput {
 }
 
 export async function addQuizQuestionAction(courseId: string, quizId: string, input: AddQuestionInput) {
-  const { ok, supabase } = await assertOwnsCourseOrAdmin(courseId);
+  const { ok, profile, supabase } = await assertOwnsCourseOrAdmin(courseId);
   if (!ok || !supabase) return { error: "Not authorized." };
 
   let insertPayload: {
@@ -156,6 +160,7 @@ export async function addQuizQuestionAction(courseId: string, quizId: string, in
 
   const { error } = await supabase.from("quiz_questions").insert(insertPayload);
   if (error) return { error: error.message };
+  await flagCourseForReReviewIfPublished(supabase, courseId, isAdmin(profile!));
 
   const { data: quiz } = await supabase.from("quizzes").select("lesson_id, courses(slug)").eq("id", quizId).maybeSingle();
   const courseSlug = (quiz?.courses as { slug: string } | { slug: string }[] | null | undefined) instanceof Array
@@ -168,7 +173,7 @@ export async function addQuizQuestionAction(courseId: string, quizId: string, in
 }
 
 export async function deleteQuizQuestionAction(courseId: string, questionId: string) {
-  const { ok, supabase } = await assertOwnsCourseOrAdmin(courseId);
+  const { ok, profile, supabase } = await assertOwnsCourseOrAdmin(courseId);
   if (!ok || !supabase) return { error: "Not authorized." };
 
   const { data: question } = await supabase
@@ -184,6 +189,7 @@ export async function deleteQuizQuestionAction(courseId: string, questionId: str
     : (quiz?.courses as { slug: string } | null | undefined)?.slug;
 
   await supabase.from("quiz_questions").delete().eq("id", questionId);
+  await flagCourseForReReviewIfPublished(supabase, courseId, isAdmin(profile!));
   revalidatePath(`/instructor/courses/${courseId}/edit`);
   revalidateStudentFacingPaths(courseSlug ?? null, quiz?.lesson_id ?? null);
   return { error: null };

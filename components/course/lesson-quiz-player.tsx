@@ -201,9 +201,14 @@ export function LessonQuizPlayer({
               )}
             </div>
 
-            {/* Review: shown after every graded attempt (pass or fail) so
-                students can actually learn from what they got wrong, not
-                just receive a score. */}
+            {/* Review: only shown on a PASS. Withholding it on a failed
+                attempt is deliberate — with unlimited retakes, showing the
+                correct answers on every attempt turned "learn from a wrong
+                answer" into "guess once, then paste the revealed answers
+                back in." A failed attempt still shows which questions were
+                wrong (via perQuestionResults below), just not what the
+                right answer was, so there's still useful signal without
+                being an answer key. */}
             {correctAnswers && perQuestionResults && (
               <div className="space-y-3 border-t border-border pt-4">
                 <p className="text-sm font-medium">Review your answers</p>

@@ -23,7 +23,6 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
     .from("courses")
     .select("*, category:categories(name), instructor:profiles!courses_instructor_id_fkey(id,full_name,avatar_url,username)")
     .eq("slug", slug)
-    .eq("status", "published")
     .single();
 
   if (!course) notFound();
@@ -72,6 +71,17 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
         .maybeSingle();
       hasCertificate = !!cert;
     }
+  }
+
+  // A published course is visible to everyone. A non-published one (e.g.
+  // sent back to pending_review after the instructor edited it post-launch)
+  // is still visible to the instructor who owns it, any admin, and — this
+  // is the important case — anyone ALREADY enrolled. Re-review must not
+  // lock enrolled students out of a course mid-way through just because
+  // their instructor fixed a typo.
+  const isOwnerOrAdmin = !!profile && (profile.id === course.instructor_id || ["admin", "super_admin"].includes(profile.role));
+  if (course.status !== "published" && !isEnrolled && !isOwnerOrAdmin) {
+    notFound();
   }
 
   interface LessonSummary {

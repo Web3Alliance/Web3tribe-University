@@ -56,6 +56,7 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
     { href: "/instructor/cohorts/new", label: "Start a Cohort", icon: Users },
     { href: "/instructor/cohorts", label: "My Cohorts", icon: CalendarDays },
     { href: "/instructor/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/instructor/wallet", label: "W3TR Wallet", icon: Wallet },
     { href: "/student/notifications", label: "Notifications", icon: Bell },
     { href: "/student/settings", label: "Settings", icon: Settings },
   ],

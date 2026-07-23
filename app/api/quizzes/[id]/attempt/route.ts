@@ -74,15 +74,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     );
   }
 
-  // Once an attempt is graded (pass or fail), the student can see the
-  // correct answers for review — the platform's aim is for students to
-  // actually learn from a wrong answer, not just receive a score. This is
-  // safe to send only now, after grading, never before a question has been
-  // attempted.
-  const correctAnswers = (questions ?? []).reduce<Record<string, unknown>>((acc, q) => {
-    acc[q.id] = q.correct_answer;
-    return acc;
-  }, {});
+  // Correct answers are only revealed on a PASS. Sending them on every
+  // graded attempt (pass or fail) meant a failing student could just copy
+  // the revealed answers into their next attempt instead of actually
+  // re-studying — with unlimited retakes, that turned "learn from a wrong
+  // answer" into "guess once, then paste the answers back." perQuestionResults
+  // still tells them which questions they got wrong (see quiz-grading.ts),
+  // just not what the right answer was, so a failed attempt is still useful
+  // feedback without being an answer key.
+  const correctAnswers = passed
+    ? (questions ?? []).reduce<Record<string, unknown>>((acc, q) => {
+        acc[q.id] = q.correct_answer;
+        return acc;
+      }, {})
+    : null;
 
   return NextResponse.json({
     data: { attempt, scorePercent, passed, perQuestionResults, correctAnswers },

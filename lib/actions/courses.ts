@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile, isAdmin } from "@/lib/rbac";
 import { slugify } from "@/lib/utils";
+import { flagCourseForReReviewIfPublished } from "@/lib/actions/course-review-flag";
 
 export interface CourseFormState {
   error: string | null;
@@ -61,7 +62,7 @@ export async function createCourseAction(_prevState: CourseFormState, formData: 
 }
 
 export async function updateCourseDetailsAction(courseId: string, formData: FormData): Promise<CourseFormState> {
-  const { ok, supabase } = await assertOwnsCourseOrAdmin(courseId);
+  const { ok, profile, supabase } = await assertOwnsCourseOrAdmin(courseId);
   if (!ok || !supabase) return { error: "Not authorized." };
 
   const title = String(formData.get("title") || "");
@@ -105,12 +106,13 @@ export async function updateCourseDetailsAction(courseId: string, formData: Form
     .eq("id", courseId);
 
   if (error) return { error: error.message };
+  await flagCourseForReReviewIfPublished(supabase, courseId, isAdmin(profile!));
   revalidatePath(`/instructor/courses/${courseId}/edit`);
   return { error: null };
 }
 
 export async function addSectionAction(courseId: string, title: string) {
-  const { ok, supabase } = await assertOwnsCourseOrAdmin(courseId);
+  const { ok, profile, supabase } = await assertOwnsCourseOrAdmin(courseId);
   if (!ok || !supabase) return { error: "Not authorized." };
 
   const { count } = await supabase
@@ -124,14 +126,16 @@ export async function addSectionAction(courseId: string, title: string) {
     display_order: (count ?? 0) + 1,
   });
   if (error) return { error: error.message };
+  await flagCourseForReReviewIfPublished(supabase, courseId, isAdmin(profile!));
   revalidatePath(`/instructor/courses/${courseId}/edit`);
   return { error: null };
 }
 
 export async function deleteSectionAction(courseId: string, sectionId: string) {
-  const { ok, supabase } = await assertOwnsCourseOrAdmin(courseId);
+  const { ok, profile, supabase } = await assertOwnsCourseOrAdmin(courseId);
   if (!ok || !supabase) return { error: "Not authorized." };
   await supabase.from("course_sections").delete().eq("id", sectionId);
+  await flagCourseForReReviewIfPublished(supabase, courseId, isAdmin(profile!));
   revalidatePath(`/instructor/courses/${courseId}/edit`);
 }
 
@@ -140,7 +144,7 @@ export async function addLessonAction(
   sectionId: string,
   data: { title: string; contentType: string; contentUrl?: string; contentText?: string; isPreview: boolean }
 ) {
-  const { ok, supabase } = await assertOwnsCourseOrAdmin(courseId);
+  const { ok, profile, supabase } = await assertOwnsCourseOrAdmin(courseId);
   if (!ok || !supabase) return { error: "Not authorized." };
 
   const { count } = await supabase
@@ -163,14 +167,16 @@ export async function addLessonAction(
     display_order: (count ?? 0) + 1,
   });
   if (error) return { error: error.message };
+  await flagCourseForReReviewIfPublished(supabase, courseId, isAdmin(profile!));
   revalidatePath(`/instructor/courses/${courseId}/edit`);
   return { error: null };
 }
 
 export async function deleteLessonAction(courseId: string, lessonId: string) {
-  const { ok, supabase } = await assertOwnsCourseOrAdmin(courseId);
+  const { ok, profile, supabase } = await assertOwnsCourseOrAdmin(courseId);
   if (!ok || !supabase) return { error: "Not authorized." };
   await supabase.from("lessons").delete().eq("id", lessonId);
+  await flagCourseForReReviewIfPublished(supabase, courseId, isAdmin(profile!));
   revalidatePath(`/instructor/courses/${courseId}/edit`);
 }
 
