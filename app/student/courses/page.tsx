@@ -45,15 +45,14 @@ export default async function BrowseCoursesPage({
 
   const { data: courses, error: coursesError } = await query.limit(24);
 
-  // TEMPORARY DIAGNOSTIC — the real bug this whole time was that a query
-  // error and a genuinely-empty result were indistinguishable: both just
-  // showed "No courses match your search yet." with nothing logged
-  // anywhere. This surfaces the real Postgres/PostgREST error, if there is
-  // one, directly on the page and in the server logs, so we can finally see
-  // what's actually happening instead of guessing. Remove this block once
-  // the real cause is found and fixed.
+  // Log (don't silently discard) any query error — this exact pattern of
+  // discarding `error` and falling through to an empty list is what made a
+  // real RLS bug (infinite recursion, Postgres error 42P17) indistinguishable
+  // from a genuinely empty course catalog for days. A quiet server-side log
+  // costs nothing and means the next time something breaks here, it shows
+  // up immediately instead of looking like "no courses."
   if (coursesError) {
-    console.error("[student/courses] Supabase query failed:", JSON.stringify(coursesError, null, 2));
+    console.error("[student/courses] Supabase query failed:", coursesError);
   }
 
   return (
@@ -91,13 +90,6 @@ export default async function BrowseCoursesPage({
           </SelectContent>
         </Select>
       </form>
-
-      {coursesError && (
-        <div className="rounded-md border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
-          <p className="font-semibold">Temporary diagnostic — query error:</p>
-          <pre className="mt-2 whitespace-pre-wrap break-all text-xs">{JSON.stringify(coursesError, null, 2)}</pre>
-        </div>
-      )}
 
       {(courses ?? []).length === 0 ? (
         <p className="py-16 text-center text-muted-foreground">No courses match your search yet.</p>
