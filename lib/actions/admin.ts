@@ -43,37 +43,39 @@ export async function moderateCourseAction(
   if (action === "approve") {
     const { data: course } = await supabase
       .from("courses")
-      .select("instructor_id, title, category:categories(name)")
+      .select("instructor_id, title, cover_is_custom, category:categories(name)")
       .eq("id", courseId)
       .single();
     if (course) {
-      // Generate the official, on-brand cover for this course. This
-      // deliberately OVERWRITES whatever thumbnail was there before (whether
-      // instructor-uploaded or a prior auto-generated one), so every
-      // approved course carries a consistent, official Web3tribe University
-      // look rather than instructor-to-instructor variation in design skill.
-      const categoryField = course.category as unknown;
-      const categoryName = Array.isArray(categoryField)
-        ? (categoryField as { name: string }[])[0]?.name
-        : (categoryField as { name: string } | null)?.name;
+      // Generate the official, on-brand cover for this course — but ONLY
+      // when the instructor hasn't uploaded their own. Overwriting a
+      // deliberately-chosen custom cover here was the bug: a required
+      // upload that then got silently destroyed on approval. Instructor
+      // uploads are now permanent unless the instructor changes them again.
+      if (!course.cover_is_custom) {
+        const categoryField = course.category as unknown;
+        const categoryName = Array.isArray(categoryField)
+          ? (categoryField as { name: string }[])[0]?.name
+          : (categoryField as { name: string } | null)?.name;
 
-      const svg = generateCourseCoverSvg(course.title, categoryName ?? null);
-      const coverPath = `official-covers/${courseId}.svg`;
-      const { error: uploadError } = await supabase.storage
-        .from("course-images")
-        .upload(coverPath, Buffer.from(svg, "utf-8"), {
-          contentType: "image/svg+xml",
-          upsert: true,
-        });
+        const svg = generateCourseCoverSvg(course.title, categoryName ?? null);
+        const coverPath = `official-covers/${courseId}.svg`;
+        const { error: uploadError } = await supabase.storage
+          .from("course-images")
+          .upload(coverPath, Buffer.from(svg, "utf-8"), {
+            contentType: "image/svg+xml",
+            upsert: true,
+          });
 
-      if (!uploadError) {
-        const { data: publicUrlData } = supabase.storage.from("course-images").getPublicUrl(coverPath);
-        await supabase.from("courses").update({ thumbnail_url: publicUrlData.publicUrl }).eq("id", courseId);
-      } else {
-        // Don't let a cover-generation hiccup block the actual approval —
-        // the course is still published either way, just without (or with
-        // its prior) thumbnail; log it for visibility instead.
-        console.error("Failed to generate/upload official course cover:", uploadError.message);
+        if (!uploadError) {
+          const { data: publicUrlData } = supabase.storage.from("course-images").getPublicUrl(coverPath);
+          await supabase.from("courses").update({ thumbnail_url: publicUrlData.publicUrl }).eq("id", courseId);
+        } else {
+          // Don't let a cover-generation hiccup block the actual approval —
+          // the course is still published either way, just without (or with
+          // its prior) thumbnail; log it for visibility instead.
+          console.error("Failed to generate/upload official course cover:", uploadError.message);
+        }
       }
 
       const rewardEngine = getRewardEngine(supabase);

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile, UserRole } from "@/lib/types";
 
@@ -11,11 +12,19 @@ const ROLE_RANK: Record<UserRole, number> = {
 };
 
 /**
- * Fetches the current authenticated user's profile (including role) on the server.
- * Returns null if not authenticated. This is the single source of truth for
- * "who is calling this route and what is their role" across all API routes.
+ * Fetches the current authenticated user's profile (including role) on the
+ * server. Returns null if not authenticated. This is the single source of
+ * truth for "who is calling this route and what is their role" across all
+ * API routes — and it's called from nearly every layout AND every page
+ * beneath it (33 call sites), which meant a single page load was paying
+ * for this function's getUser() network round-trip PLUS its profiles query
+ * two, three, sometimes four times over, fully serialized, before any
+ * actual page content could even start rendering. Wrapping it in React's
+ * cache() deduplicates identical calls within a single request/render
+ * pass — the real work now happens exactly once per request no matter how
+ * many places call it, with zero changes needed at any call site.
  */
-export async function getCurrentProfile(): Promise<Profile | null> {
+export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -24,7 +33,7 @@ export async function getCurrentProfile(): Promise<Profile | null> {
 
   const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
   return (data as Profile) ?? null;
-}
+});
 
 /** Throws-free check: does this profile meet or exceed the given minimum role? */
 export function hasRoleAtLeast(profile: Profile | null, minRole: UserRole): boolean {

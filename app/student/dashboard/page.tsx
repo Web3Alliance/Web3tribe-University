@@ -102,7 +102,18 @@ export default async function StudentDashboardPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {inProgress.map((e) => (
               <Card key={e.id}>
-                <div className="aspect-video w-full rounded-t-xl bg-secondary" />
+                {e.course?.thumbnail_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- course covers come from arbitrary Supabase Storage URLs (instructor-uploaded or auto-generated SVG), not a fixed local asset set
+                  <img
+                    src={e.course.thumbnail_url}
+                    alt={e.course?.title ?? "Course cover"}
+                    className="aspect-video w-full rounded-t-xl object-cover"
+                  />
+                ) : (
+                  <div className="flex aspect-video w-full items-center justify-center rounded-t-xl bg-secondary">
+                    <BookOpen className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                )}
                 <CardHeader className="pb-2">
                   <CardTitle className="line-clamp-2 text-base">{e.course?.title}</CardTitle>
                 </CardHeader>

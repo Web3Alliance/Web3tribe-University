@@ -37,12 +37,15 @@ export function CourseDetailsForm({ course, categories }: { course: Course; cate
       <CardContent>
         <form action={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>
-              Cover image <span className="text-destructive">*</span>
-            </Label>
+            <Label>Cover image</Label>
             <p className="text-xs text-muted-foreground">
-              Required before this course can be submitted for review — this is what students see on the course
-              catalog and detail page.
+              Optional — this is what students see on the course catalog and detail page. Upload your own artwork,
+              or leave it blank and we&apos;ll generate an official on-brand cover automatically once your course
+              is approved.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Recommended size: <strong>1280 &times; 720px</strong> (16:9 ratio), JPG/PNG/WebP. A cover you upload
+              here is yours to keep &mdash; approval will never replace it with an auto-generated design.
             </p>
             {thumbnailUrl && (
               // eslint-disable-next-line @next/next/no-img-element -- instructor-provided cover images come from arbitrary Supabase Storage URLs, not a fixed local asset set

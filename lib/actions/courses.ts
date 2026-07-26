@@ -99,6 +99,9 @@ export async function updateCourseDetailsAction(courseId: string, formData: Form
       price_w3tr: priceW3tr,
       estimated_hours: estimatedHours,
       thumbnail_url: thumbnailUrl,
+      // Any cover saved through this instructor-facing form is a deliberate
+      // choice — course approval must respect it and skip auto-generation.
+      cover_is_custom: !!thumbnailUrl,
       delivery_mode: deliveryMode,
       requirements,
       learning_outcomes: learningOutcomes,
@@ -184,10 +187,10 @@ export async function submitCourseForReviewAction(courseId: string) {
   const { ok, supabase, profile } = await assertOwnsCourseOrAdmin(courseId);
   if (!ok || !supabase) return { error: "Not authorized." };
 
-  const { data: courseCheck } = await supabase.from("courses").select("thumbnail_url").eq("id", courseId).single();
-  if (!courseCheck?.thumbnail_url) {
-    return { error: "Add a cover image before submitting this course for review." };
-  }
+  // A cover image is no longer required to submit for review — instructors
+  // may upload their own (preserved permanently, see cover_is_custom) or
+  // leave it unset entirely and receive an official auto-generated cover
+  // once the course is approved.
 
   const { data: sections } = await supabase
     .from("course_sections")
