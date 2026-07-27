@@ -54,7 +54,11 @@ export async function updateSession(request: NextRequest) {
 
   if (!user) {
     const redirectUrl = new URL("/login", request.url);
-    redirectUrl.searchParams.set("redirectTo", path);
+    // Include the search string (e.g. ?category=X) too — dropping it here
+    // silently throws away a homepage category filter the moment an
+    // unauthenticated visitor logs in.
+    const intendedPath = path + request.nextUrl.search;
+    redirectUrl.searchParams.set("redirectTo", intendedPath);
     return NextResponse.redirect(redirectUrl);
   }
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,27 +21,56 @@ import {
   Award,
   Wallet,
   Users,
-  Blocks,
   Code2,
+  Link as LinkIcon,
+  Briefcase,
+  Factory,
+  Sun,
+  Wrench,
+  Sparkles,
+  BookOpen,
+  type LucideIcon,
 } from "lucide-react";
+
+// Maps the free-text `icon` column on public.categories (e.g. "brain",
+// "shield-check") to an actual icon component. Keep in sync with whatever
+// icon slugs are seeded/added in supabase/seed/seed.sql and the admin
+// category-management screen — anything not found here safely falls back
+// to a generic icon rather than crashing the landing page.
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  brain: Brain,
+  "shield-check": ShieldCheck,
+  code: Code2,
+  database: Database,
+  link: LinkIcon,
+  cloud: Cloud,
+  briefcase: Briefcase,
+  landmark: Landmark,
+  sprout: Sprout,
+  "heart-pulse": HeartPulse,
+  "graduation-cap": GraduationCap,
+  palette: Palette,
+  rocket: Rocket,
+  factory: Factory,
+  sun: Sun,
+  wrench: Wrench,
+  sparkles: Sparkles,
+};
 
 export default async function LandingPage() {
   const t = await getTranslations("landing");
   const tCommon = await getTranslations("common");
+  const supabase = await createClient();
 
-  const categories = [
-    { icon: Brain, label: "Artificial Intelligence" },
-    { icon: Code2, label: "Software Development" },
-    { icon: ShieldCheck, label: "Cybersecurity" },
-    { icon: Database, label: "Data Science" },
-    { icon: Blocks, label: "Blockchain" },
-    { icon: Cloud, label: "Cloud Computing" },
-    { icon: Landmark, label: "Finance" },
-    { icon: Sprout, label: "Agriculture" },
-    { icon: HeartPulse, label: "Healthcare" },
-    { icon: Palette, label: "Creative Arts" },
-    { icon: Rocket, label: "Entrepreneurship" },
-  ];
+  // Real categories from the database, not a hardcoded decorative list —
+  // this is what makes each one able to link through to actual matching
+  // courses instead of being purely cosmetic.
+  const { data: categories } = await supabase
+    .from("categories")
+    .select("id, name, slug, icon")
+    .eq("is_active", true)
+    .order("display_order")
+    .limit(11);
 
   const steps = [
     { step: "1", title: t("step1Title"), body: t("step1Body") },
@@ -112,14 +142,19 @@ export default async function LandingPage() {
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-8 text-center text-2xl font-bold">{t("categoriesHeading")}</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {categories.map((c) => (
-              <Card key={c.label} className="transition-shadow hover:shadow-md">
-                <CardContent className="flex flex-col items-center gap-2 p-6 text-center">
-                  <c.icon className="h-7 w-7 text-primary" />
-                  <p className="text-sm font-medium">{c.label}</p>
-                </CardContent>
-              </Card>
-            ))}
+            {(categories ?? []).map((c) => {
+              const Icon = (c.icon && CATEGORY_ICONS[c.icon]) || BookOpen;
+              return (
+                <Link key={c.id} href={`/student/courses?category=${c.id}`}>
+                  <Card className="h-full transition-shadow hover:shadow-md hover:border-primary/50">
+                    <CardContent className="flex flex-col items-center gap-2 p-6 text-center">
+                      <Icon className="h-7 w-7 text-primary" />
+                      <p className="text-sm font-medium">{c.name}</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
