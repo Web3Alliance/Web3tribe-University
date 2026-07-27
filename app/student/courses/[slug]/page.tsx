@@ -10,6 +10,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { EnrollButton, WishlistButton } from "@/components/course/enroll-button";
 import { CourseResourcesList } from "@/components/course/course-resources-list";
 import { CertificateClaimButton } from "@/components/course/certificate-claim-button";
+import { CourseReviewForm } from "@/components/course/course-review-form";
+import { CourseReviewsList, type CourseReviewItem } from "@/components/course/course-reviews-list";
 import { Star, Users, Clock, PlayCircle, FileText, Lock, MessageSquare, MapPin, Globe } from "lucide-react";
 import { initials } from "@/lib/utils";
 import { CohortJoinButton } from "@/components/course/cohort-join-button";
@@ -27,7 +29,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
 
   if (!course) notFound();
 
-  const [{ data: sections }, { data: resources }, { data: cohorts }] = await Promise.all([
+  const [{ data: sections }, { data: resources }, { data: cohorts }, { data: reviews }] = await Promise.all([
     supabase
       .from("course_sections")
       .select("*, lessons(id,title,content_type,duration_seconds,is_preview,display_order)")
@@ -41,6 +43,11 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
       .eq("status", "upcoming")
       .gte("start_date", new Date().toISOString().slice(0, 10))
       .order("start_date"),
+    supabase
+      .from("course_reviews")
+      .select("id, rating, review_text, instructor_response, created_at, student:profiles(full_name, avatar_url)")
+      .eq("course_id", course.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   let isEnrolled = false;
@@ -49,11 +56,15 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
   let isCompleted = false;
   let hasCertificate = false;
 
+  let myReview: { rating: number; review_text: string | null } | null = null;
+
   if (profile) {
-    const [{ data: enrollment }, { data: wish }] = await Promise.all([
+    const [{ data: enrollment }, { data: wish }, { data: existingReview }] = await Promise.all([
       supabase.from("enrollments").select("id,status").eq("student_id", profile.id).eq("course_id", course.id).maybeSingle(),
       supabase.from("wishlists").select("id").eq("student_id", profile.id).eq("course_id", course.id).maybeSingle(),
+      supabase.from("course_reviews").select("rating, review_text").eq("student_id", profile.id).eq("course_id", course.id).maybeSingle(),
     ]);
+    myReview = existingReview ?? null;
     // A dropped enrollment shouldn't count as "enrolled" — otherwise a
     // student who drops a course could never see the "Enroll Now" button
     // again to re-join it later if they change their mind.
@@ -281,6 +292,33 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      <div className="space-y-4">
+        <h2 className="flex items-center gap-2 text-xl font-semibold">
+          <Star className="h-5 w-5 fill-accent text-accent" />
+          Reviews
+          {course.rating_count > 0 && (
+            <span className="text-sm font-normal text-muted-foreground">
+              {Number(course.average_rating).toFixed(1)} average \u00B7 {course.rating_count} review
+              {course.rating_count === 1 ? "" : "s"}
+            </span>
+          )}
+        </h2>
+
+        {isCompleted && (
+          <CourseReviewForm courseId={course.id} courseSlug={course.slug} existingReview={myReview} />
+        )}
+
+        <Card>
+          <CardContent className="p-4 sm:p-6">
+            <CourseReviewsList
+              reviews={(reviews ?? []) as unknown as CourseReviewItem[]}
+              courseSlug={course.slug}
+              canRespond={profile?.id === course.instructor_id}
+            />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

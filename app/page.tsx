@@ -155,6 +155,9 @@ export default async function LandingPage() {
       <footer className="border-t border-border px-4 py-8 text-center text-sm text-muted-foreground">
         <p>© {new Date().getFullYear()} Web3tribe University · A Web3.0 Alliance Ltd platform.</p>
         <p className="mt-2 flex justify-center gap-4">
+          <Link href="/impact" className="hover:text-foreground hover:underline">
+            Our Impact
+          </Link>
           <Link href="/terms" className="hover:text-foreground hover:underline">
             Terms of Service
           </Link>

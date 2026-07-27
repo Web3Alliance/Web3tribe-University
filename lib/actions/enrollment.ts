@@ -186,3 +186,33 @@ export async function submitCourseReview(courseId: string, courseSlug: string, r
   revalidatePath(`/student/courses/${courseSlug}`);
   return { error: null };
 }
+
+export async function respondToReviewAction(reviewId: string, courseSlug: string, responseText: string) {
+  const profile = await getCurrentProfile();
+  if (!profile) return { error: "You must be logged in." };
+
+  const supabase = await createClient();
+  // Only the instructor who owns the reviewed course (or an admin) may
+  // respond — verified via the same course-ownership join used elsewhere,
+  // rather than trusting a client-supplied course/instructor id.
+  const { data: review } = await supabase
+    .from("course_reviews")
+    .select("course_id, courses(instructor_id)")
+    .eq("id", reviewId)
+    .single();
+  const courseField = review?.courses as { instructor_id: string } | { instructor_id: string }[] | null | undefined;
+  const instructorId = Array.isArray(courseField) ? courseField[0]?.instructor_id : courseField?.instructor_id;
+  const isOwner = instructorId === profile.id;
+  if (!review || (!isOwner && profile.role !== "admin" && profile.role !== "super_admin")) {
+    return { error: "Not authorized." };
+  }
+
+  const { error } = await supabase
+    .from("course_reviews")
+    .update({ instructor_response: responseText.trim() || null })
+    .eq("id", reviewId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/student/courses/${courseSlug}`);
+  return { error: null };
+}
