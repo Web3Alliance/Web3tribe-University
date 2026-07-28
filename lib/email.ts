@@ -51,21 +51,73 @@ export async function sendEmail({ to, subject, html }: SendEmailOptions): Promis
 }
 
 /**
- * Shared minimal HTML wrapper so every transactional email looks consistent
- * without pulling in a templating dependency.
+ * Shared HTML wrapper every transactional email is built from — this is the
+ * one place to change to redesign every email at once, since all current
+ * senders (opportunity/shortlist/invite emails) already funnel through it.
+ *
+ * Built with table-based layout and inline styles throughout, NOT the
+ * flexbox/grid + <style> block approach normal web HTML uses. Email clients
+ * are a much harsher rendering environment than browsers: Outlook (desktop)
+ * uses Word's rendering engine and ignores most modern CSS, many clients
+ * strip <style> tags entirely, and background-image/gradient tricks that
+ * work fine on the web frequently don't render at all in an inbox. Tables
+ * with inline styles are the actual, still-current standard for email HTML
+ * because they're the one approach that degrades gracefully everywhere.
  */
 export function emailLayout(title: string, bodyHtml: string, ctaUrl?: string, ctaLabel?: string): string {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://web3tribe.university";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.web3tribe.university";
+  const logoUrl = `${siteUrl}/logo.png`;
+
+  const ctaBlock = ctaUrl
+    ? `
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 28px 0 4px;">
+      <tr>
+        <td style="border-radius: 8px; background-color: #0B5E3A;">
+          <a href="${ctaUrl}" style="display: inline-block; padding: 12px 28px; font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px;">
+            ${ctaLabel ?? "Open Web3tribe University"}
+          </a>
+        </td>
+      </tr>
+    </table>`
+    : "";
+
   return `
-  <div style="font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; color: #1a1a1a;">
-    <h2 style="margin: 0 0 16px; font-size: 20px;">${title}</h2>
-    <div style="font-size: 14px; line-height: 1.6; color: #333;">${bodyHtml}</div>
-    ${
-      ctaUrl
-        ? `<p style="margin: 24px 0;"><a href="${ctaUrl}" style="display: inline-block; background: #16a34a; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;">${ctaLabel ?? "Open Web3tribe University"}</a></p>`
-        : ""
-    }
-    <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
-    <p style="font-size: 12px; color: #888;">Sent by <a href="${siteUrl}" style="color: #16a34a;">Web3tribe University</a>. You received this because of activity on your account.</p>
-  </div>`;
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #F4F7F5; padding: 32px 16px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 12px; overflow: hidden; font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;">
+
+        <!-- Header -->
+        <tr>
+          <td style="background-color: #083F27; padding: 28px 32px; text-align: center;">
+            <img src="${logoUrl}" width="52" height="52" alt="Web3tribe University" style="display: block; margin: 0 auto 10px; border: 0;" />
+            <div style="color: #ffffff; font-size: 14px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;">Web3tribe University</div>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding: 32px;">
+            <h1 style="margin: 0 0 16px; font-size: 20px; line-height: 1.3; color: #083F27; font-weight: 700;">${title}</h1>
+            <div style="font-size: 14px; line-height: 1.65; color: #333333;">${bodyHtml}</div>
+            ${ctaBlock}
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background-color: #F4F7F5; padding: 20px 32px; text-align: center; border-top: 1px solid #E5E9E7;">
+            <p style="margin: 0; font-size: 12px; color: #5A6472;">
+              Sent by <a href="${siteUrl}" style="color: #0B5E3A; text-decoration: none; font-weight: 600;">Web3tribe University</a> \u2014 a Web3.0 Alliance Ltd platform.
+            </p>
+            <p style="margin: 8px 0 0; font-size: 11px; color: #9CA3AF;">
+              You're receiving this because of activity related to your account.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>`;
 }
