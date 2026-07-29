@@ -42,3 +42,37 @@ export async function notifyUser(params: {
     if (error) console.error("[notify] Fallback insert also failed (set SUPABASE_SERVICE_ROLE_KEY):", error.message);
   }
 }
+
+/**
+ * Notifies every admin/super_admin, not one hardcoded recipient — course
+ * submissions and re-reviews previously notified only the instructor, which
+ * meant nothing requiring an admin's attention ever actually reached an
+ * admin; the only way to find out was to manually check the moderation
+ * queue. Moderators are deliberately excluded here — this is specifically
+ * for things that need an ADMIN decision, not general moderation traffic.
+ */
+export async function notifyAdmins(params: { title: string; body?: string; linkUrl?: string }): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: admins, error: fetchError } = await admin
+      .from("profiles")
+      .select("id")
+      .in("role", ["admin", "super_admin"]);
+    if (fetchError) {
+      console.error("[notifyAdmins] Failed to fetch admin list:", fetchError.message);
+      return;
+    }
+    if (!admins || admins.length === 0) return;
+
+    const rows = admins.map((a) => ({
+      profile_id: a.id,
+      title: params.title,
+      body: params.body ?? null,
+      link_url: params.linkUrl ?? null,
+    }));
+    const { error } = await admin.from("notifications").insert(rows);
+    if (error) console.error("[notifyAdmins] Failed to insert notifications:", error.message);
+  } catch (err) {
+    console.error("[notifyAdmins] Unexpected failure (is SUPABASE_SERVICE_ROLE_KEY set?):", err);
+  }
+}

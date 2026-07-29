@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { notifyUser } from "@/lib/notify";
+import { notifyUser, notifyAdmins } from "@/lib/notify";
 
 /**
  * A published course previously stayed live and fully unmoderated no
@@ -45,5 +45,11 @@ export async function flagCourseForReReviewIfPublished(
     title: "Course resubmitted for review",
     body: `Your edit to "${course.title}" has taken it back off the catalog until an admin reviews the change. Students already enrolled keep their access.`,
     linkUrl: `/instructor/courses/${courseId}/edit`,
+  });
+
+  await notifyAdmins({
+    title: "Course needs re-review",
+    body: `"${course.title}" was edited by its instructor and has been pulled back from the catalog pending your review.`,
+    linkUrl: "/admin/courses",
   });
 }

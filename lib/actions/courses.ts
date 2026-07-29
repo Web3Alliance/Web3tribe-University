@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile, isAdmin } from "@/lib/rbac";
 import { slugify } from "@/lib/utils";
 import { flagCourseForReReviewIfPublished } from "@/lib/actions/course-review-flag";
+import { notifyAdmins } from "@/lib/notify";
 
 export interface CourseFormState {
   error: string | null;
@@ -88,28 +89,47 @@ export async function updateCourseDetailsAction(courseId: string, formData: Form
     .map((s) => s.trim())
     .filter(Boolean);
 
+  // Fetch the current stored values first — this form always resubmits the
+  // FULL set of fields on every save, even when the instructor opened it and
+  // changed nothing at all. Without this comparison, that harmless no-op save
+  // was pulling a live, published course back into review every single time,
+  // which is a real cost to an instructor (and to admins reviewing a queue
+  // full of resubmissions with no actual content change behind them).
+  const { data: before } = await supabase
+    .from("courses")
+    .select("title, subtitle, description, level, category_id, price_w3tr, estimated_hours, thumbnail_url, delivery_mode, requirements, learning_outcomes")
+    .eq("id", courseId)
+    .single();
+
+  const after = {
+    title,
+    subtitle,
+    description,
+    level,
+    category_id: categoryId,
+    price_w3tr: priceW3tr,
+    estimated_hours: estimatedHours,
+    thumbnail_url: thumbnailUrl,
+    delivery_mode: deliveryMode,
+    requirements,
+    learning_outcomes: learningOutcomes,
+  };
+  const somethingActuallyChanged = !before || JSON.stringify(before) !== JSON.stringify(after);
+
   const { error } = await supabase
     .from("courses")
     .update({
-      title,
-      subtitle,
-      description,
-      level,
-      category_id: categoryId,
-      price_w3tr: priceW3tr,
-      estimated_hours: estimatedHours,
-      thumbnail_url: thumbnailUrl,
+      ...after,
       // Any cover saved through this instructor-facing form is a deliberate
       // choice — course approval must respect it and skip auto-generation.
       cover_is_custom: !!thumbnailUrl,
-      delivery_mode: deliveryMode,
-      requirements,
-      learning_outcomes: learningOutcomes,
     })
     .eq("id", courseId);
 
   if (error) return { error: error.message };
-  await flagCourseForReReviewIfPublished(supabase, courseId, isAdmin(profile!));
+  if (somethingActuallyChanged) {
+    await flagCourseForReReviewIfPublished(supabase, courseId, isAdmin(profile!));
+  }
   revalidatePath(`/instructor/courses/${courseId}/edit`);
   return { error: null };
 }
@@ -241,6 +261,13 @@ export async function submitCourseForReviewAction(courseId: string) {
     course_id: courseId,
     actor_profile_id: profile!.id,
     action: "submit",
+  });
+
+  const { data: submittedCourse } = await supabase.from("courses").select("title").eq("id", courseId).maybeSingle();
+  await notifyAdmins({
+    title: "New course submitted for review",
+    body: `"${submittedCourse?.title ?? "A course"}" was submitted and is waiting for your review.`,
+    linkUrl: "/admin/courses",
   });
 
   revalidatePath(`/instructor/courses/${courseId}/edit`);

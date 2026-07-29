@@ -60,7 +60,11 @@ export default async function InstructorCoursesPage() {
                     {c.status.replace("_", " ")}
                   </Badge>
                 </TableCell>
-                <TableCell>{c.enrollment_count}</TableCell>
+                <TableCell>
+                  <Link href={`/instructor/courses/${c.id}/students`} className="text-primary hover:underline">
+                    {c.enrollment_count}
+                  </Link>
+                </TableCell>
                 <TableCell>{Number(c.average_rating).toFixed(1)}</TableCell>
                 <TableCell>{c.price_w3tr > 0 ? `${c.price_w3tr} W3TR` : "Free"}</TableCell>
                 <TableCell className="text-right">

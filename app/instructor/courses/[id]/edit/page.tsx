@@ -1,5 +1,4 @@
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile, isAdmin } from "@/lib/rbac";
 import { CourseDetailsForm } from "@/components/course/course-details-form";
@@ -7,8 +6,6 @@ import { CurriculumBuilder } from "@/components/course/curriculum-builder";
 import { CourseResourcesManager } from "@/components/course/course-resources-manager";
 import { SubmitForReviewButton } from "@/components/course/submit-for-review-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Course, Quiz, QuizQuestion } from "@/lib/types";
 
@@ -81,11 +78,6 @@ export default async function EditCoursePage({ params }: { params: Promise<{ id:
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
-            <Link href={`/instructor/courses/${course.id}/students`}>
-              <Users className="h-4 w-4" /> Students
-            </Link>
-          </Button>
           {canSubmit && <SubmitForReviewButton courseId={course.id} />}
         </div>
       </div>
