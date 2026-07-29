@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
  * edge-anchored sheet needs different positioning/animation than a centered
  * modal.
  */
-export function MobileNav({ role }: { role: UserRole }) {
+export function MobileNav({ role, actualRole }: { role: UserRole; actualRole?: UserRole }) {
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -59,7 +59,7 @@ export function MobileNav({ role }: { role: UserRole }) {
               shared component (which is also used unwrapped in the desktop
               persistent sidebar). */}
           <div onClick={() => setOpen(false)}>
-            <DashboardSidebar role={role} />
+            <DashboardSidebar role={role} actualRole={actualRole} />
           </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>

@@ -31,7 +31,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { initials, formatW3TR } from "@/lib/utils";
 import type { UserRole } from "@/lib/types";
 
-export function DashboardTopbar({ role, w3trBalance }: { role: UserRole; w3trBalance?: number }) {
+export function DashboardTopbar({ role, actualRole, w3trBalance }: { role: UserRole; actualRole?: UserRole; w3trBalance?: number }) {
   const { profile } = useAuth();
   const { theme, setTheme } = useTheme();
   const locale = useLocale() as SupportedLocale;
@@ -40,7 +40,7 @@ export function DashboardTopbar({ role, w3trBalance }: { role: UserRole; w3trBal
   return (
     <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-2 border-b border-border bg-card/80 px-3 pt-[env(safe-area-inset-top)] backdrop-blur sm:gap-4 sm:px-4">
       <div className="flex items-center gap-2">
-        <MobileNav role={role} />
+        <MobileNav role={role} actualRole={actualRole} />
         <Link href="/" className="flex items-center gap-2 truncate font-bold text-primary">
           <Logo size={32} priority />
           <span className="sm:hidden">W3tribe</span>

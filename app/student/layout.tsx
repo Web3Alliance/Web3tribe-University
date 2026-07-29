@@ -17,7 +17,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
     .single();
 
   return (
-    <DashboardShell role={profile!.role} w3trBalance={wallet ? Number(wallet.balance) : undefined}>
+    <DashboardShell role="student" actualRole={profile!.role} w3trBalance={wallet ? Number(wallet.balance) : undefined}>
       {children}
     </DashboardShell>
   );

@@ -26,9 +26,21 @@ import {
   GraduationCap,
   Briefcase,
   CalendarDays,
+  ArrowLeftRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/lib/types";
+
+// Where "switch back" should send someone whose real role differs from the
+// nav currently shown (e.g. an instructor browsing the student area).
+const HOME_BY_ROLE: Record<UserRole, { href: string; label: string }> = {
+  student: { href: "/student/dashboard", label: "Student" },
+  instructor: { href: "/instructor/dashboard", label: "Instructor" },
+  organization: { href: "/organization/dashboard", label: "Organization" },
+  moderator: { href: "/admin/dashboard", label: "Moderator" },
+  admin: { href: "/admin/dashboard", label: "Admin" },
+  super_admin: { href: "/admin/dashboard", label: "Admin" },
+};
 
 interface NavItem {
   href: string;
@@ -57,6 +69,7 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
     { href: "/instructor/cohorts", label: "My Cohorts", icon: CalendarDays },
     { href: "/instructor/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/instructor/wallet", label: "W3TR Wallet", icon: Wallet },
+    { href: "/student/courses", label: "Explore as Student", icon: ArrowLeftRight },
     { href: "/student/notifications", label: "Notifications", icon: Bell },
     { href: "/student/settings", label: "Settings", icon: Settings },
   ],
@@ -99,12 +112,23 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   ],
 };
 
-export function DashboardSidebar({ role }: { role: UserRole }) {
+export function DashboardSidebar({ role, actualRole }: { role: UserRole; actualRole?: UserRole }) {
   const pathname = usePathname();
   const items = NAV_BY_ROLE[role] ?? [];
+  const isSwitchedView = !!actualRole && actualRole !== role;
+  const homeForActualRole = actualRole ? HOME_BY_ROLE[actualRole] : null;
 
   return (
     <nav className="flex flex-col gap-1 p-3">
+      {isSwitchedView && homeForActualRole && (
+        <Link
+          href={homeForActualRole.href}
+          className="mb-2 flex items-center gap-3 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+        >
+          <ArrowLeftRight className="h-4 w-4" />
+          Back to {homeForActualRole.label}
+        </Link>
+      )}
       {items.map((item) => {
         const active = pathname === item.href || pathname.startsWith(item.href + "/");
         const Icon = item.icon;
