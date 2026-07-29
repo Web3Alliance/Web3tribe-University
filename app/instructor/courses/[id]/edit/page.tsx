@@ -40,7 +40,7 @@ export default async function EditCoursePage({ params }: { params: Promise<{ id:
       supabase.from("categories").select("*").eq("is_active", true).order("display_order"),
       supabase
         .from("course_sections")
-        .select("*, lessons(*)")
+        .select("*, lessons(*, lesson_resources(*))")
         .eq("course_id", id)
         .order("display_order"),
       supabase

@@ -15,7 +15,7 @@ export default async function LearnLessonPage({ params }: { params: Promise<{ le
 
   const supabase = await createClient();
 
-  const { data: lesson } = await supabase.from("lessons").select("*, course:courses(id,title,slug)").eq("id", lessonId).single();
+  const { data: lesson } = await supabase.from("lessons").select("*, course:courses(id,title,slug), lesson_resources(*)").eq("id", lessonId).single();
   if (!lesson) notFound();
 
   const { data: enrollment } = await supabase

@@ -215,6 +215,16 @@ export interface Cohort {
   instructor?: Pick<Profile, "full_name">;
 }
 
+export interface LessonResource {
+  id: string;
+  lesson_id: string;
+  title: string;
+  file_url: string;
+  file_type: string | null;
+  file_size_bytes: number | null;
+  created_at: string;
+}
+
 export interface Lesson {
   id: string;
   section_id: string;
@@ -227,6 +237,7 @@ export interface Lesson {
   display_order: number;
   is_preview: boolean;
   w3tr_reward: number;
+  lesson_resources?: LessonResource[];
 }
 
 export interface Enrollment {

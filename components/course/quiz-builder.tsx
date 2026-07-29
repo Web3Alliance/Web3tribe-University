@@ -1,14 +1,20 @@
 "use client";
 import * as React from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { addQuizQuestionAction, deleteQuizQuestionAction, deleteQuizAction } from "@/lib/actions/quiz-builder";
+import {
+  addQuizQuestionAction,
+  updateQuizQuestionAction,
+  deleteQuizQuestionAction,
+  deleteQuizAction,
+} from "@/lib/actions/quiz-builder";
+import { ImportQuestionsButton } from "@/components/course/import-questions-button";
 import { TOKENOMICS } from "@/lib/tokenomics";
 import type { QuizQuestion } from "@/lib/types";
 
@@ -60,6 +66,7 @@ export function QuizBuilder({ courseId, quizId, quizTitle, isFinalExam, question
           )}
         </div>
         <div className="flex items-center gap-2">
+          <ImportQuestionsButton courseId={courseId} quizId={quizId} />
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline">
@@ -70,7 +77,7 @@ export function QuizBuilder({ courseId, quizId, quizTitle, isFinalExam, question
               <DialogHeader>
                 <DialogTitle>Add question to &quot;{quizTitle}&quot;</DialogTitle>
               </DialogHeader>
-              <AddQuestionForm courseId={courseId} quizId={quizId} onDone={() => setDialogOpen(false)} />
+              <QuestionForm mode="add" courseId={courseId} quizId={quizId} onDone={() => setDialogOpen(false)} />
             </DialogContent>
           </Dialog>
           <Button size="icon" variant="ghost" onClick={handleDeleteQuiz} disabled={isPending}>
@@ -91,6 +98,7 @@ export function QuizBuilder({ courseId, quizId, quizTitle, isFinalExam, question
 
 function QuestionRow({ courseId, question, index }: { courseId: string; question: QuizQuestion; index: number }) {
   const [isPending, startTransition] = React.useTransition();
+  const [editOpen, setEditOpen] = React.useState(false);
   const options = (question.options as { id: string; text: string }[]) ?? [];
   const correctId = question.correct_answer as unknown as string;
   const isShortAnswer = question.question_type === "short_answer";
@@ -106,15 +114,30 @@ function QuestionRow({ courseId, question, index }: { courseId: string; question
             </span>
           )}
         </p>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-6 w-6 shrink-0"
-          disabled={isPending}
-          onClick={() => startTransition(async () => { await deleteQuizQuestionAction(courseId, question.id); })}
-        >
-          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-        </Button>
+        <div className="flex shrink-0 items-center gap-1">
+          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+            <DialogTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-6 w-6">
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit question</DialogTitle>
+              </DialogHeader>
+              <QuestionForm mode="edit" courseId={courseId} questionId={question.id} existing={question} onDone={() => setEditOpen(false)} />
+            </DialogContent>
+          </Dialog>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            disabled={isPending}
+            onClick={() => startTransition(async () => { await deleteQuizQuestionAction(courseId, question.id); })}
+          >
+            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+          </Button>
+        </div>
       </div>
       {isShortAnswer ? (
         <p className="mt-2 flex items-center gap-1.5 pl-4 text-xs text-muted-foreground">
@@ -135,17 +158,48 @@ function QuestionRow({ courseId, question, index }: { courseId: string; question
   );
 }
 
-function AddQuestionForm({ courseId, quizId, onDone }: { courseId: string; quizId: string; onDone: () => void }) {
+/**
+ * Shared by both "add" and "edit" — previously edit didn't exist at all, so
+ * this form only ever needed to handle a blank starting state. Now it also
+ * accepts `existing` to pre-fill when editing, and calls the matching action
+ * (add vs. update) based on `mode`.
+ */
+function QuestionForm({
+  mode,
+  courseId,
+  quizId,
+  questionId,
+  existing,
+  onDone,
+}: {
+  mode: "add" | "edit";
+  courseId: string;
+  quizId?: string;
+  questionId?: string;
+  existing?: QuizQuestion;
+  onDone: () => void;
+}) {
   const [isPending, startTransition] = React.useTransition();
-  const [questionType, setQuestionType] = React.useState<"single_choice" | "short_answer">("single_choice");
-  const [options, setOptions] = React.useState([
-    { id: "a", text: "" },
-    { id: "b", text: "" },
-    { id: "c", text: "" },
-    { id: "d", text: "" },
-  ]);
-  const [correctId, setCorrectId] = React.useState("a");
-  const [correctTextAnswer, setCorrectTextAnswer] = React.useState("");
+  const existingOptions = (existing?.options as { id: string; text: string }[] | null) ?? null;
+  const [questionType, setQuestionType] = React.useState<"single_choice" | "short_answer">(
+    existing?.question_type === "short_answer" ? "short_answer" : "single_choice"
+  );
+  const [options, setOptions] = React.useState(
+    existingOptions && existingOptions.length > 0
+      ? existingOptions
+      : [
+          { id: "a", text: "" },
+          { id: "b", text: "" },
+          { id: "c", text: "" },
+          { id: "d", text: "" },
+        ]
+  );
+  const [correctId, setCorrectId] = React.useState(
+    existing?.question_type !== "short_answer" ? (existing?.correct_answer as unknown as string) ?? "a" : "a"
+  );
+  const [correctTextAnswer, setCorrectTextAnswer] = React.useState(
+    existing?.question_type === "short_answer" ? String(existing.correct_answer) : ""
+  );
 
   function updateOption(id: string, text: string) {
     setOptions((prev) => prev.map((o) => (o.id === id ? { ...o, text } : o)));
@@ -164,14 +218,14 @@ function AddQuestionForm({ courseId, quizId, onDone }: { courseId: string; quizI
         return;
       }
       startTransition(async () => {
-        const res = await addQuizQuestionAction(courseId, quizId, {
-          questionText,
-          questionType: "short_answer",
-          correctTextAnswer,
-        });
+        const input = { questionText, questionType: "short_answer" as const, correctTextAnswer };
+        const res =
+          mode === "add"
+            ? await addQuizQuestionAction(courseId, quizId!, input)
+            : await updateQuizQuestionAction(courseId, questionId!, input);
         if (res?.error) toast.error(res.error);
         else {
-          toast.success("Question added.");
+          toast.success(mode === "add" ? "Question added." : "Question updated.");
           onDone();
         }
       });
@@ -185,15 +239,14 @@ function AddQuestionForm({ courseId, quizId, onDone }: { courseId: string; quizI
     }
 
     startTransition(async () => {
-      const res = await addQuizQuestionAction(courseId, quizId, {
-        questionText,
-        questionType: "single_choice",
-        options: filledOptions,
-        correctOptionId: correctId,
-      });
+      const input = { questionText, questionType: "single_choice" as const, options: filledOptions, correctOptionId: correctId };
+      const res =
+        mode === "add"
+          ? await addQuizQuestionAction(courseId, quizId!, input)
+          : await updateQuizQuestionAction(courseId, questionId!, input);
       if (res?.error) toast.error(res.error);
       else {
-        toast.success("Question added.");
+        toast.success(mode === "add" ? "Question added." : "Question updated.");
         onDone();
       }
     });
@@ -203,7 +256,7 @@ function AddQuestionForm({ courseId, quizId, onDone }: { courseId: string; quizI
     <form action={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="questionText">Question</Label>
-        <Input id="questionText" name="questionText" required />
+        <Input id="questionText" name="questionText" required defaultValue={existing?.question_text ?? ""} />
       </div>
 
       <div className="space-y-2">
@@ -214,11 +267,11 @@ function AddQuestionForm({ courseId, quizId, onDone }: { courseId: string; quizI
           className="flex flex-wrap gap-4"
         >
           <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <RadioGroupItem value="single_choice" id="type-choice" />
+            <RadioGroupItem value="single_choice" id={`type-choice-${mode}`} />
             Multiple choice
           </label>
           <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <RadioGroupItem value="short_answer" id="type-subjective" />
+            <RadioGroupItem value="short_answer" id={`type-subjective-${mode}`} />
             Subjective (short answer)
           </label>
         </RadioGroup>
@@ -230,7 +283,7 @@ function AddQuestionForm({ courseId, quizId, onDone }: { courseId: string; quizI
           <RadioGroup value={correctId} onValueChange={setCorrectId} className="space-y-2">
             {options.map((o) => (
               <div key={o.id} className="flex items-center gap-2">
-                <RadioGroupItem value={o.id} id={`opt-${o.id}`} />
+                <RadioGroupItem value={o.id} id={`opt-${mode}-${o.id}`} />
                 <Input
                   placeholder={`Option ${o.id.toUpperCase()}`}
                   value={o.text}
@@ -258,7 +311,7 @@ function AddQuestionForm({ courseId, quizId, onDone }: { courseId: string; quizI
       )}
 
       <Button type="submit" disabled={isPending} className="w-full">
-        {isPending ? "Adding…" : "Add question"}
+        {isPending ? "Saving…" : mode === "add" ? "Add question" : "Save changes"}
       </Button>
     </form>
   );

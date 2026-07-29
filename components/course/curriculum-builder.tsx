@@ -15,6 +15,7 @@ import { addSectionAction, deleteSectionAction, addLessonAction, deleteLessonAct
 import { addLessonQuizAction, addFinalExamAction } from "@/lib/actions/quiz-builder";
 import { FileUploadField, type UploadBucket } from "@/components/course/file-upload-field";
 import { QuizBuilder } from "@/components/course/quiz-builder";
+import { LessonResourceManager } from "@/components/course/lesson-resource-manager";
 import { TOKENOMICS } from "@/lib/tokenomics";
 import type { CourseSection, Lesson, Quiz, QuizQuestion } from "@/lib/types";
 
@@ -240,6 +241,8 @@ function LessonRow({ courseId, lesson, quiz }: { courseId: string; lesson: Lesso
           )}
         </div>
       )}
+
+      <LessonResourceManager courseId={courseId} lessonId={lesson.id} resources={lesson.lesson_resources ?? []} />
     </li>
   );
 }

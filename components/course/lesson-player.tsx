@@ -105,6 +105,35 @@ export function LessonPlayer({
         </div>
       )}
 
+      {lesson.lesson_resources && lesson.lesson_resources.length > 0 && (
+        <div className="rounded-lg border border-border bg-card p-4">
+          <p className="mb-2 text-sm font-medium">Lesson resources</p>
+          <ul className="space-y-1.5">
+            {lesson.lesson_resources.map((r) => (
+              <li key={r.id}>
+                <a
+                  href={r.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-primary hover:underline"
+                >
+                  <FileText className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{r.title}</span>
+                  {r.file_size_bytes != null && (
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      ({r.file_size_bytes < 1024 * 1024
+                        ? `${Math.round(r.file_size_bytes / 1024)} KB`
+                        : `${(r.file_size_bytes / (1024 * 1024)).toFixed(1)} MB`})
+                    </span>
+                  )}
+                  <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
         <div>
           <p className="font-medium">{lesson.title}</p>

@@ -247,3 +247,52 @@ export async function submitCourseForReviewAction(courseId: string) {
   revalidatePath("/instructor/courses");
   return { error: null };
 }
+
+/**
+ * Attaches a downloadable resource (slides, worksheet, dataset, etc.) to a
+ * lesson. The lesson_resources table and its RLS policies (instructor
+ * manage, enrolled-student read) already existed in the schema — this is
+ * the first action that actually writes to it. Upload itself happens via
+ * the shared /api/upload route before this is called; this action just
+ * records the resulting URL against the lesson.
+ */
+export async function addLessonResourceAction(
+  courseId: string,
+  lessonId: string,
+  data: { title: string; fileUrl: string; fileType: string; fileSizeBytes: number }
+) {
+  const { ok, profile, supabase } = await assertOwnsCourseOrAdmin(courseId);
+  if (!ok || !supabase) return { error: "Not authorized." };
+
+  const { error } = await supabase.from("lesson_resources").insert({
+    lesson_id: lessonId,
+    title: data.title,
+    file_url: data.fileUrl,
+    file_type: data.fileType,
+    file_size_bytes: data.fileSizeBytes,
+  });
+  if (error) return { error: error.message };
+  await flagCourseForReReviewIfPublished(supabase, courseId, isAdmin(profile!));
+
+  const { data: lesson } = await supabase.from("lessons").select("course_id, courses(slug)").eq("id", lessonId).maybeSingle();
+  const courseSlug = (lesson?.courses as { slug: string } | { slug: string }[] | null | undefined) instanceof Array
+    ? (lesson?.courses as { slug: string }[])[0]?.slug
+    : (lesson?.courses as { slug: string } | null | undefined)?.slug;
+
+  revalidatePath(`/instructor/courses/${courseId}/edit`);
+  revalidatePath(`/student/learn/${lessonId}`);
+  if (courseSlug) revalidatePath(`/student/courses/${courseSlug}`);
+  return { error: null };
+}
+
+export async function deleteLessonResourceAction(courseId: string, resourceId: string, lessonId: string) {
+  const { ok, profile, supabase } = await assertOwnsCourseOrAdmin(courseId);
+  if (!ok || !supabase) return { error: "Not authorized." };
+
+  await supabase.from("lesson_resources").delete().eq("id", resourceId);
+  await flagCourseForReReviewIfPublished(supabase, courseId, isAdmin(profile!));
+
+  revalidatePath(`/instructor/courses/${courseId}/edit`);
+  revalidatePath(`/student/learn/${lessonId}`);
+  return { error: null };
+}
