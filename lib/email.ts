@@ -66,7 +66,12 @@ export async function sendEmail({ to, subject, html }: SendEmailOptions): Promis
  */
 export function emailLayout(title: string, bodyHtml: string, ctaUrl?: string, ctaLabel?: string): string {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.web3tribe.university";
-  const logoUrl = `${siteUrl}/logo.png`;
+  // Uses a dedicated, size-optimized copy (156x156px, ~42KB) rather than the
+  // main app logo (1075x1075px, ~1.6MB) — displayed at only 52x52px here, so
+  // the full-resolution file was making Gmail's image proxy fetch 39x more
+  // data than the display size ever needed, a likely cause of the logo
+  // failing to load on a recipient's first-ever email from this domain.
+  const logoUrl = `${siteUrl}/logo-email.png`;
 
   const ctaBlock = ctaUrl
     ? `
