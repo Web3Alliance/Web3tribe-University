@@ -9,9 +9,24 @@ const PROTECTED_PREFIXES = [
   "/super-admin",
 ];
 
+// Course browsing is genuinely meant to be public — the course detail page
+// already has an `if (profile)` guard specifically to handle a logged-out
+// visitor gracefully, and the homepage's own category links point straight
+// here for anyone, logged in or not. But because these routes sit under the
+// blanket-protected /student prefix, an anonymous visitor (including every
+// search engine crawler) was being redirected to /login before ever
+// reaching them — making the entire course catalog invisible to Google, no
+// matter how good its metadata is. This carves out exactly those two
+// routes (the list, and a single course's detail page) as public, while
+// everything else under /student — the dashboard, wallet, settings,
+// enrollment actions, discussion threads, etc. — stays protected exactly
+// as before.
+const PUBLIC_EXCEPTIONS = [/^\/student\/courses$/, /^\/student\/courses\/[^/]+$/];
+
 export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  const isProtected = PROTECTED_PREFIXES.some((p) => path.startsWith(p));
+  const isPublicException = PUBLIC_EXCEPTIONS.some((re) => re.test(path));
+  const isProtected = !isPublicException && PROTECTED_PREFIXES.some((p) => path.startsWith(p));
 
   // getUser() makes a real network round-trip to Supabase's Auth server on
   // every call — that's the whole point, it's a live revalidation rather

@@ -15,6 +15,49 @@ import { CourseReviewsList, type CourseReviewItem } from "@/components/course/co
 import { Star, Users, Clock, PlayCircle, FileText, Lock, MessageSquare, MapPin, Globe } from "lucide-react";
 import { initials } from "@/lib/utils";
 import { CohortJoinButton } from "@/components/course/cohort-join-button";
+import type { Metadata } from "next";
+
+/**
+ * Previously missing entirely — every course page inherited the same
+ * generic site-wide title/description from the root layout, meaning Google
+ * saw hundreds of course pages all with an identical title tag. That's
+ * actively harmful for search ranking (duplicate titles), and it also meant
+ * a course link shared on WhatsApp showed the generic site card instead of
+ * that specific course's own name and description.
+ */
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const { data: course } = await supabase
+    .from("courses")
+    .select("title, subtitle, description, thumbnail_url, status")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (!course) {
+    return { title: "Course", description: "Explore digital skills courses on Web3tribe University." };
+  }
+
+  const description = course.subtitle || course.description?.slice(0, 155) || "Learn real, in-demand digital skills on Web3tribe University.";
+
+  return {
+    title: course.title,
+    description,
+    openGraph: {
+      title: course.title,
+      description,
+      type: "website",
+      images: course.thumbnail_url ? [{ url: course.thumbnail_url, width: 1280, height: 720, alt: course.title }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: course.title,
+      description,
+      images: course.thumbnail_url ? [course.thumbnail_url] : undefined,
+    },
+  };
+}
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
