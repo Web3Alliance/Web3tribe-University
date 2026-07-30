@@ -8,7 +8,6 @@ import { useAuth } from "@/contexts/auth-context";
 import { logoutAction } from "@/lib/actions/auth";
 import { setLocaleAction } from "@/lib/actions/locale";
 import { SUPPORTED_LOCALES, LOCALE_LABELS, type SupportedLocale } from "@/i18n/locales";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { NotificationBell } from "@/components/notifications/notification-bell";
