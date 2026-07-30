@@ -11,7 +11,11 @@ import {
 import { Search } from "lucide-react";
 import type { Course } from "@/lib/types";
 
-export const metadata = { title: "Browse Courses" };
+export const metadata = {
+  title: "Browse Courses",
+  description: "Explore courses in AI, cybersecurity, data science, software development, and more on Web3tribe University.",
+  alternates: { canonical: "/student/courses" },
+};
 
 interface SearchParams {
   q?: string;

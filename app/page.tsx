@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,10 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   sparkles: Sparkles,
 };
 
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
+
 export default async function LandingPage() {
   const t = await getTranslations("landing");
   const tCommon = await getTranslations("common");
@@ -78,8 +83,23 @@ export default async function LandingPage() {
     { step: "3", title: t("step3Title"), body: t("step3Body") },
   ];
 
+  const orgJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "EducationalOrganization",
+    name: "Web3tribe University",
+    url: "https://www.web3tribe.university",
+    logo: "https://www.web3tribe.university/logo.png",
+    description:
+      "Web3tribe University empowers Nigerians with digital skills in AI, cybersecurity, data science, and more — rewarding learners, instructors, and contributors with W3TR as they learn, teach, and build.",
+    sameAs: ["https://theweb3alliance.org"],
+  };
+
   return (
     <main className="flex flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd).replace(/</g, "\\u003c") }}
+      />
       <header className="sticky top-0 z-40 border-b border-border bg-card/80 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between p-3 sm:p-4">
           <span className="flex items-center gap-2 text-lg font-bold text-primary">

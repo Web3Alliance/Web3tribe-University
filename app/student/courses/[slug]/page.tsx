@@ -44,6 +44,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: course.title,
     description,
+    alternates: { canonical: `/student/courses/${slug}` },
     openGraph: {
       title: course.title,
       description,
@@ -152,8 +153,34 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
   )[0];
   const totalLessons = (sections ?? []).reduce((sum, s) => sum + (s.lessons?.length ?? 0), 0);
 
+  const courseJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    name: course.title,
+    description: course.description || course.subtitle || "",
+    provider: {
+      "@type": "Organization",
+      name: "Web3tribe University",
+      sameAs: "https://www.web3tribe.university",
+    },
+    ...(course.thumbnail_url ? { image: course.thumbnail_url } : {}),
+    ...(course.rating_count > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: Number(course.average_rating).toFixed(1),
+            ratingCount: course.rating_count,
+          },
+        }
+      : {}),
+  };
+
   return (
     <div className="mx-auto max-w-6xl space-y-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd).replace(/</g, "\\u003c") }}
+      />
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <div className="flex flex-wrap gap-2">

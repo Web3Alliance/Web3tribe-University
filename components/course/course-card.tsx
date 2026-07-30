@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Star, Users } from "lucide-react";
@@ -9,12 +10,15 @@ export function CourseCard({ course }: { course: Course }) {
     <Card className="flex flex-col overflow-hidden transition-shadow hover:shadow-md">
       <Link href={`/student/courses/${course.slug}`}>
         {course.thumbnail_url ? (
-          // eslint-disable-next-line @next/next/no-img-element -- course covers come from arbitrary instructor-uploaded Supabase Storage URLs
-          <img
-            src={course.thumbnail_url}
-            alt={course.title}
-            className="aspect-video w-full object-cover"
-          />
+          <div className="relative aspect-video w-full">
+            <Image
+              src={course.thumbnail_url}
+              alt={course.title}
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover"
+            />
+          </div>
         ) : (
           <div className="aspect-video w-full bg-gradient-to-br from-primary/20 to-accent/20" />
         )}
