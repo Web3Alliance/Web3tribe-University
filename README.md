@@ -2,11 +2,11 @@
 
 **Learn. Build. Earn.**
 
-A national learn-and-earn digital skills platform built with Next.js and Supabase, developed by **Web3.0 Alliance Ltd**. Students earn **W3TR** (an in-app reward asset — not a cryptocurrency) by learning and passing lesson quizzes; instructors earn W3TR for approved, published courses.
+A learn-and-earn digital skills platform built with Next.js and Supabase, developed by **Web3.0 Alliance Ltd**. Students earn **W3TR** (an in-app reward asset — not a cryptocurrency) by learning and passing lesson quizzes; instructors earn W3TR for approved, published courses.
 
 ## Why this exists
 
-Web3tribe University is the digital infrastructure being built to replicate and scale, nationally, a delivery model already proven on the ground by our **Digital Inclusion Project** — an initiative bridging emerging technologies and local communities through partnerships with government institutions.
+Web3tribe University is the digital infrastructure being built to replicate and scale, globally, a delivery model already proven on the ground by our **Digital Inclusion Project** — an initiative bridging emerging technologies and local communities through partnerships with government institutions.
 
 That project's pilot was a physical **Innovation Lab** set up at **Plateau State Polytechnic**, equipped with the tools needed to deliver hands-on digital-skills training. It grew to **600+ beneficiaries**, and the partnerships it generated — including a **₦24,000,000 World Bank grant** to train 80 people in Computer Hardware & Cellphone Repairs — proved both the demand for this kind of training and the institutional trust the model can earn. That evidence is what prompted us to build this platform: a way to digitize and replicate that same model across all 36 states of Nigeria.
 
