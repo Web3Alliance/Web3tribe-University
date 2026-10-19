@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { W3trTransaction, W3trTransactionType, W3trWallet } from "@/lib/types";
 
 /**
@@ -46,7 +47,29 @@ export interface RewardEngine {
  * is licensed and approved.
  */
 class LedgerRewardEngine implements RewardEngine {
-  constructor(private supabase: SupabaseClient) {}
+  private privilegedClient: SupabaseClient | null;
+
+  /**
+   * @param supabase    the caller's own (RLS-scoped) session — used ONLY for reads.
+   * @param privileged  optional service-role client; created lazily when omitted.
+   */
+  constructor(private supabase: SupabaseClient, privileged?: SupabaseClient) {
+    this.privilegedClient = privileged ?? null;
+  }
+
+  /**
+   * SECURITY: award_w3tr / spend_w3tr / complete_lesson / record_daily_login are
+   * SECURITY DEFINER database functions that trust the arguments they are given
+   * (migration 0022 revokes EXECUTE on them from the browser-facing roles). They
+   * must therefore only ever run from trusted server code using the service-role
+   * key — and EVERY caller of this engine is responsible for having already
+   * authenticated the user and authorised the action (see lib/lesson-completion.ts
+   * and the API routes) before it gets here.
+   */
+  private get privileged(): SupabaseClient {
+    if (!this.privilegedClient) this.privilegedClient = createAdminClient();
+    return this.privilegedClient;
+  }
 
   async award(
     profileId: string,
@@ -54,7 +77,7 @@ class LedgerRewardEngine implements RewardEngine {
     amount: number,
     opts: { referenceTable?: string; referenceId?: string; description?: string; awardedBy?: string } = {}
   ): Promise<W3trTransaction> {
-    const { data, error } = await this.supabase.rpc("award_w3tr", {
+    const { data, error } = await this.privileged.rpc("award_w3tr", {
       p_profile_id: profileId,
       p_type: type,
       p_amount: amount,
@@ -72,7 +95,7 @@ class LedgerRewardEngine implements RewardEngine {
     amount: number,
     opts: { referenceTable?: string; referenceId?: string; description?: string } = {}
   ): Promise<W3trTransaction> {
-    const { data, error } = await this.supabase.rpc("spend_w3tr", {
+    const { data, error } = await this.privileged.rpc("spend_w3tr", {
       p_profile_id: profileId,
       p_amount: amount,
       p_reference_table: opts.referenceTable ?? null,
@@ -105,7 +128,7 @@ class LedgerRewardEngine implements RewardEngine {
   }
 
   async completeLesson(enrollmentId: string, lessonId: string): Promise<void> {
-    const { error } = await this.supabase.rpc("complete_lesson", {
+    const { error } = await this.privileged.rpc("complete_lesson", {
       p_enrollment_id: enrollmentId,
       p_lesson_id: lessonId,
     });
@@ -113,7 +136,7 @@ class LedgerRewardEngine implements RewardEngine {
   }
 
   async recordDailyLogin(profileId: string): Promise<{ streak_day: number; w3tr_awarded: number }> {
-    const { data, error } = await this.supabase.rpc("record_daily_login", { p_profile_id: profileId });
+    const { data, error } = await this.privileged.rpc("record_daily_login", { p_profile_id: profileId });
     if (error) throw new Error(`RewardEngine.recordDailyLogin failed: ${error.message}`);
     const row = Array.isArray(data) ? data[0] : data;
     return { streak_day: row.streak_day, w3tr_awarded: Number(row.w3tr_awarded) };
@@ -124,6 +147,6 @@ class LedgerRewardEngine implements RewardEngine {
  * Factory. Swap the implementation here (behind a feature flag, once blockchain
  * integration is licensed) — nothing else in the codebase needs to change.
  */
-export function getRewardEngine(supabase: SupabaseClient): RewardEngine {
-  return new LedgerRewardEngine(supabase);
+export function getRewardEngine(supabase: SupabaseClient, privileged?: SupabaseClient): RewardEngine {
+  return new LedgerRewardEngine(supabase, privileged);
 }

@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/rbac";
 import { getBiodataGateStatus } from "@/lib/actions/biodata";
 import { getRewardEngine } from "@/lib/reward-engine";
@@ -65,7 +66,14 @@ export async function enrollInCourse(courseId: string, courseSlug: string) {
     if (existing.status === "completed") return { error: "You've already completed this course." };
     // status === "dropped" — reactivate it. Re-enrolling after a drop does
     // not charge W3TR again; the price was already paid the first time.
-    const { error } = await supabase.from("enrollments").update({ status: "active" }).eq("id", existing.id);
+    // SECURITY: enrolment rows are written by the server only (migration 0022 removed the
+    // student write policies). `existing` was looked up above by this student's own id.
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("enrollments")
+      .update({ status: "active" })
+      .eq("id", existing.id)
+      .eq("student_id", profile.id);
     if (error) return { error: error.message };
     revalidatePath(`/student/courses/${courseSlug}`);
     return { error: null };
@@ -75,8 +83,22 @@ export async function enrollInCourse(courseId: string, courseSlug: string) {
   // student doesn't have enough, we don't just fail — we tell the UI exactly
   // how much more they need so it can offer the "Buy W3TR" flow instead of a
   // dead-end error.
-  const { data: course } = await supabase.from("courses").select("price_w3tr, instructor_id").eq("id", courseId).single();
-  const price = Number(course?.price_w3tr ?? 0);
+  const { data: course } = await supabase
+    .from("courses")
+    .select("price_w3tr, instructor_id, status")
+    .eq("id", courseId)
+    .single();
+  if (!course) return { error: "Course not found." };
+
+  // Row-level security used to guarantee this indirectly; now that the enrolment is written
+  // with the server key we check it explicitly. (A course's own instructor and moderators may
+  // still enrol in an unpublished course, e.g. to preview it.)
+  const canEnrolInUnpublished =
+    course.instructor_id === profile.id || ["moderator", "admin", "super_admin"].includes(profile.role);
+  if (course.status !== "published" && !canEnrolInUnpublished) {
+    return { error: "This course isn't open for enrollment." };
+  }
+  const price = Number(course.price_w3tr ?? 0);
 
   if (price > 0) {
     const rewardEngine = getRewardEngine(supabase);
@@ -110,7 +132,7 @@ export async function enrollInCourse(courseId: string, courseSlug: string) {
     }
   }
 
-  const { error } = await supabase.from("enrollments").insert({
+  const { error } = await createAdminClient().from("enrollments").insert({
     student_id: profile.id,
     course_id: courseId,
   });
@@ -146,10 +168,11 @@ export async function dropCourseAction(courseId: string, courseSlug: string) {
   if (!enrollment) return { error: "You're not enrolled in this course." };
   if (enrollment.status === "completed") return { error: "You've already completed this course." };
 
-  const { error } = await supabase
+  const { error } = await createAdminClient()
     .from("enrollments")
     .update({ status: "dropped" })
-    .eq("id", enrollment.id);
+    .eq("id", enrollment.id)
+    .eq("student_id", profile.id);
 
   if (error) return { error: error.message };
 

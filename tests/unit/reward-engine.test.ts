@@ -57,7 +57,7 @@ function makeMockSupabase(overrides: Partial<Record<string, unknown>> = {}) {
 describe("RewardEngine.award", () => {
   it("calls the award_w3tr RPC with the correct arguments and returns the transaction", async () => {
     const supabase = makeMockSupabase();
-    const engine = getRewardEngine(supabase);
+    const engine = getRewardEngine(supabase, supabase);
 
     const tx = await engine.award("user-1", "lesson_complete", 5, {
       referenceTable: "lessons",
@@ -81,7 +81,7 @@ describe("RewardEngine.award", () => {
   it("throws a descriptive error when the RPC fails", async () => {
     const supabase = makeMockSupabase();
     supabase.rpc = vi.fn(async () => ({ data: null, error: { message: "resulting balance cannot be negative" } }));
-    const engine = getRewardEngine(supabase);
+    const engine = getRewardEngine(supabase, supabase);
 
     await expect(engine.award("user-1", "admin_deduction", -1000)).rejects.toThrow(
       /resulting balance cannot be negative/
@@ -92,7 +92,7 @@ describe("RewardEngine.award", () => {
 describe("RewardEngine.spend", () => {
   it("calls spend_w3tr with a positive amount and receives a negative-amount transaction back", async () => {
     const supabase = makeMockSupabase();
-    const engine = getRewardEngine(supabase);
+    const engine = getRewardEngine(supabase, supabase);
 
     const tx = await engine.spend("user-1", 20, { description: "Redeemed for a badge" });
 
@@ -110,7 +110,7 @@ describe("RewardEngine.spend", () => {
 describe("RewardEngine.getBalance", () => {
   it("returns the wallet for a given profile", async () => {
     const supabase = makeMockSupabase();
-    const engine = getRewardEngine(supabase);
+    const engine = getRewardEngine(supabase, supabase);
 
     const wallet = await engine.getBalance("user-1");
     expect(wallet?.balance).toBe(42);
@@ -120,7 +120,7 @@ describe("RewardEngine.getBalance", () => {
 describe("RewardEngine.completeLesson", () => {
   it("calls the complete_lesson RPC with enrollment and lesson ids", async () => {
     const supabase = makeMockSupabase();
-    const engine = getRewardEngine(supabase);
+    const engine = getRewardEngine(supabase, supabase);
 
     await engine.completeLesson("enrollment-1", "lesson-1");
 
@@ -134,9 +134,36 @@ describe("RewardEngine.completeLesson", () => {
 describe("RewardEngine.recordDailyLogin", () => {
   it("returns the streak day and awarded amount", async () => {
     const supabase = makeMockSupabase();
-    const engine = getRewardEngine(supabase);
+    const engine = getRewardEngine(supabase, supabase);
 
     const result = await engine.recordDailyLogin("user-1");
     expect(result).toEqual({ streak_day: 3, w3tr_awarded: 2 });
+  });
+});
+
+describe("RewardEngine privilege separation (security)", () => {
+  it("runs award/spend/completeLesson/recordDailyLogin ONLY on the privileged client, never on the user's session", async () => {
+    const session = makeMockSupabase();
+    const privileged = makeMockSupabase();
+    const engine = getRewardEngine(session, privileged);
+
+    await engine.award("user-1", "lesson_complete", 1);
+    await engine.spend("user-1", 5);
+    await engine.completeLesson("enr-1", "les-1");
+    await engine.recordDailyLogin("user-1");
+
+    expect(privileged.rpc).toHaveBeenCalledTimes(4);
+    expect(session.rpc).not.toHaveBeenCalled();
+  });
+
+  it("reads balances through the user's own (RLS-scoped) session, not the privileged client", async () => {
+    const session = makeMockSupabase();
+    const privileged = makeMockSupabase();
+    const engine = getRewardEngine(session, privileged);
+
+    await engine.getBalance("user-1");
+
+    expect(session.from).toHaveBeenCalledWith("w3tr_wallets");
+    expect(privileged.from).not.toHaveBeenCalled();
   });
 });

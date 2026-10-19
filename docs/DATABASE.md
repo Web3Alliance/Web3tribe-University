@@ -49,3 +49,14 @@ node scripts/test-schema.js supabase/migrations/0001_schema.sql supabase/migrati
 ```
 
 (Adjust `scripts/test-schema.js` to accept multiple file arguments if you want to chain-validate more than one migration at a time — currently it takes a single file path.)
+
+## Security rules for new migrations (read before adding one)
+
+Migration `0022_security_hardening.sql` closed a set of holes found by an external audit. The same mistakes are easy to repeat, so:
+
+1. **Database functions are server-only by default.** After 0022, functions created by `postgres` are *not* executable by `anon`/`authenticated`. If an RLS policy or the browser genuinely needs a function, add an explicit `grant execute on function … to anon, authenticated;` (as `is_admin()` has). Never give browser roles `SECURITY DEFINER` functions that take a user id as an argument.
+2. **RLS decides rows, not columns.** If a user may update their own row, any column that carries authority (role, status, verification, counters, grades) needs a `protect_*` trigger like those in 0022, or the table must be written only by the server.
+3. **Anything that pays out, grants access or issues a credential is written by the server** (service-role key) after the route/action has authenticated the user and checked ownership — see `lib/lesson-completion.ts` for the pattern.
+4. **Role checks belong in `lib/route-access.ts` (enforced by the proxy), not only in layouts** — a layout redirect does not stop a page from loading its data.
+5. **Run `python3 supabase/tests/security/run_all.py` after every migration.** It replays the audit attacks and checks legitimate flows still work. See `supabase/tests/security/README.md`.
+

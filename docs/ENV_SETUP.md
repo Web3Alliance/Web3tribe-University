@@ -8,7 +8,7 @@ Copy `.env.example` to `.env.local` for local development. In production (Netlif
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API | Public, safe to expose to the browser |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Project Settings → API | Public anon key; RLS is what actually protects data |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API | **Secret.** Never expose to the browser. Used only in `lib/supabase/admin.ts` for privileged server-side operations (certificate generation, public certificate verification lookups, system health checks). |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API | **Secret.** Never expose to the browser. Used only in `lib/supabase/admin.ts` for privileged server-side operations (certificate generation, public certificate verification lookups, system health checks). **Since migration 0022 it is also required for every W3TR reward, enrolment and quiz-attempt record** — the browser-facing database roles can no longer do those writes, so if this variable is missing or wrong, lesson completion, daily login rewards, paid enrolment and quizzes will fail. |
 | `NEXT_PUBLIC_SITE_URL` | Your deployed URL, or `http://localhost:3000` locally | Used to build absolute redirect/callback URLs for auth and certificate verification links |
 
 ## Optional — Donations (Paystack)

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/rbac";
-import { getRewardEngine } from "@/lib/reward-engine";
+import { completeLessonForStudent } from "@/lib/lesson-completion";
 
 interface CompleteLessonBody {
   enrollmentId: string;
@@ -15,23 +14,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const body = (await request.json()) as CompleteLessonBody;
   if (!body.enrollmentId) return NextResponse.json({ data: null, error: "enrollmentId is required." }, { status: 400 });
 
-  const supabase = await createClient();
-
-  const { data: enrollment } = await supabase
-    .from("enrollments")
-    .select("student_id")
-    .eq("id", body.enrollmentId)
-    .single();
-  if (!enrollment || enrollment.student_id !== profile.id) {
-    return NextResponse.json({ data: null, error: "Forbidden" }, { status: 403 });
-  }
-
-  const rewardEngine = getRewardEngine(supabase);
-  try {
-    await rewardEngine.completeLesson(body.enrollmentId, lessonId);
-  } catch (e) {
-    return NextResponse.json({ data: null, error: e instanceof Error ? e.message : "Failed to complete lesson." }, { status: 500 });
-  }
+  // Ownership + lesson/course membership are verified inside completeLessonForStudent.
+  const result = await completeLessonForStudent({ studentId: profile.id, enrollmentId: body.enrollmentId, lessonId });
+  if (!result.ok) return NextResponse.json({ data: null, error: result.error }, { status: result.status });
 
   return NextResponse.json({ data: { success: true }, error: null });
 }

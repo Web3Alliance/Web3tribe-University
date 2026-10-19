@@ -1,21 +1,16 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/rbac";
-import { getRewardEngine } from "@/lib/reward-engine";
+import { completeLessonForStudent } from "@/lib/lesson-completion";
 
 export async function completeLessonAction(enrollmentId: string, lessonId: string, courseSlug: string) {
   const profile = await getCurrentProfile();
   if (!profile) return { error: "You must be logged in." };
 
-  const supabase = await createClient();
-  const rewardEngine = getRewardEngine(supabase);
-
-  try {
-    await rewardEngine.completeLesson(enrollmentId, lessonId);
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : "Failed to complete lesson." };
-  }
+  // SECURITY: server actions are public POST endpoints, so the enrolment must be proven to
+  // belong to the caller (and the lesson to its course) before anything is paid out.
+  const result = await completeLessonForStudent({ studentId: profile.id, enrollmentId, lessonId });
+  if (!result.ok) return { error: result.error };
 
   revalidatePath(`/student/courses/${courseSlug}`);
   revalidatePath("/student/dashboard");

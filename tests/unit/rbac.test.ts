@@ -26,6 +26,8 @@ function makeProfile(role: Profile["role"]): Profile {
     last_seen_at: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    lga: null,
+    visible_for_opportunities: false,
   };
 }
 

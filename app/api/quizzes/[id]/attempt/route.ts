@@ -20,6 +20,25 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { data: quiz } = await supabase.from("quizzes").select("*").eq("id", quizId).single();
   if (!quiz) return NextResponse.json({ data: null, error: "Quiz not found" }, { status: 404 });
 
+  // SECURITY: quizzes pay out W3TR and a passed final exam unlocks the certificate, so the
+  // caller must actually be enrolled in the quiz's course (the course's own instructor and
+  // admins may still take it, e.g. to test it). Without this, anyone logged in could farm
+  // rewards from a paid course's quizzes without enrolling or paying.
+  const { data: enrollment } = await supabase
+    .from("enrollments")
+    .select("id")
+    .eq("student_id", profile.id)
+    .eq("course_id", quiz.course_id)
+    .in("status", ["active", "completed"])
+    .maybeSingle();
+  if (!enrollment) {
+    const { data: quizCourse } = await supabase.from("courses").select("instructor_id").eq("id", quiz.course_id).maybeSingle();
+    const mayPreview = quizCourse?.instructor_id === profile.id || ["admin", "super_admin"].includes(profile.role);
+    if (!mayPreview) {
+      return NextResponse.json({ data: null, error: "You need to be enrolled in this course to take this quiz." }, { status: 403 });
+    }
+  }
+
   const { count: attemptCount } = await supabase
     .from("quiz_attempts")
     .select("*", { count: "exact", head: true })
@@ -46,7 +65,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     Number(quiz.passing_score_percent)
   );
 
-  const { data: attempt, error } = await supabase
+  // The attempt record is written with the server key (migration 0022 removed the student write
+  // policy), so a student can never insert a pre-passed attempt of their own.
+  const { data: attempt, error } = await admin
     .from("quiz_attempts")
     .insert({
       quiz_id: quizId,

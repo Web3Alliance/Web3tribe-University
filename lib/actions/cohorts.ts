@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/rbac";
 import { getBiodataGateStatus } from "@/lib/actions/biodata";
 import { getRewardEngine } from "@/lib/reward-engine";
@@ -151,10 +152,12 @@ export async function enrollInCohortAction(cohortId: string, courseSlug: string)
   if (existing) {
     if (existing.status === "active") return { error: "You're already enrolled in this course." };
     if (existing.status === "completed") return { error: "You've already completed this course." };
-    const { error } = await supabase
+    // SECURITY: enrolment rows are written by the server only (migration 0022).
+    const { error } = await createAdminClient()
       .from("enrollments")
       .update({ status: "active", cohort_id: cohortId })
-      .eq("id", existing.id);
+      .eq("id", existing.id)
+      .eq("student_id", profile.id);
     if (error) return { error: error.message };
     revalidatePath(`/student/courses/${courseSlug}`);
     return { error: null };
@@ -163,10 +166,16 @@ export async function enrollInCohortAction(cohortId: string, courseSlug: string)
   // Same premium-course price enforcement as direct enrollment.
   const { data: course } = await supabase
     .from("courses")
-    .select("price_w3tr, instructor_id")
+    .select("price_w3tr, instructor_id, status")
     .eq("id", cohort.course_id)
     .single();
-  const price = Number(course?.price_w3tr ?? 0);
+  if (!course) return { error: "Course not found." };
+  const canEnrolInUnpublished =
+    course.instructor_id === profile.id || ["moderator", "admin", "super_admin"].includes(profile.role);
+  if (course.status !== "published" && !canEnrolInUnpublished) {
+    return { error: "This course isn't open for enrollment." };
+  }
+  const price = Number(course.price_w3tr ?? 0);
 
   if (price > 0) {
     const rewardEngine = getRewardEngine(supabase);
@@ -198,7 +207,7 @@ export async function enrollInCohortAction(cohortId: string, courseSlug: string)
     }
   }
 
-  const { error } = await supabase.from("enrollments").insert({
+  const { error } = await createAdminClient().from("enrollments").insert({
     student_id: profile.id,
     course_id: cohort.course_id,
     cohort_id: cohortId,

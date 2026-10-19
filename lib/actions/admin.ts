@@ -3,6 +3,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getRewardEngine } from "@/lib/reward-engine";
 import { requireRole } from "@/lib/rbac";
+import { canAssignRole, canBanUser } from "@/lib/admin-policy";
+import type { UserRole } from "@/lib/types";
 import { generateCourseCoverSvg } from "@/lib/course-cover";
 
 export async function moderateCourseAction(
@@ -112,6 +114,16 @@ export async function banUserAction(userId: string, ban: boolean, reason: string
   if (!profile) return { error: "Not authorized." };
 
   const supabase = await createClient();
+  const { data: target } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
+  if (!target) return { error: "User not found." };
+  const allowed = canBanUser({
+    actorId: profile.id,
+    actorRole: profile.role,
+    targetId: userId,
+    targetRole: target.role as UserRole,
+  });
+  if (!allowed.ok) return { error: allowed.error };
+
   const { error } = await supabase
     .from("profiles")
     .update({ is_banned: ban, ban_reason: ban ? reason : null })
@@ -135,6 +147,19 @@ export async function updateUserRoleAction(userId: string, role: string) {
   if (!profile) return { error: "Not authorized." };
 
   const supabase = await createClient();
+  const { data: target } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
+  if (!target) return { error: "User not found." };
+  // Validates the role value itself AND the hierarchy: only a super admin may grant or revoke
+  // admin-tier roles, and nobody may change their own role.
+  const allowed = canAssignRole({
+    actorId: profile.id,
+    actorRole: profile.role,
+    targetId: userId,
+    targetRole: target.role as UserRole,
+    newRole: role,
+  });
+  if (!allowed.ok) return { error: allowed.error };
+
   const { error } = await supabase.from("profiles").update({ role }).eq("id", userId);
   if (error) return { error: error.message };
 

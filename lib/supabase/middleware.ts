@@ -1,5 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { resolveRouteAccess, ruleForPath } from "@/lib/route-access";
+import type { UserRole } from "@/lib/types";
 
 const PROTECTED_PREFIXES = [
   "/student",
@@ -75,6 +77,17 @@ export async function updateSession(request: NextRequest) {
     const intendedPath = path + request.nextUrl.search;
     redirectUrl.searchParams.set("redirectTo", intendedPath);
     return NextResponse.redirect(redirectUrl);
+  }
+
+  // ROLE GATE (runs before any page or server action in the area executes).
+  // Only role-restricted areas (/admin, /super-admin, /instructor, /organization) pay for this
+  // one extra lookup; /student/* is open to every signed-in role.
+  if (ruleForPath(path)) {
+    const { data: roleRow } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    const access = resolveRouteAccess(path, (roleRow?.role as UserRole | undefined) ?? null);
+    if (!access.allowed) {
+      return NextResponse.redirect(new URL(access.redirectTo, request.url));
+    }
   }
 
   return supabaseResponse;
