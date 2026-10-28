@@ -324,6 +324,117 @@ def run_suite(db):
     st, rows = s.run("select verification_notes from public.instructor_profiles", uid=F["B"])
     attack("F4-instructor-docs-auth", "Any logged-in user reads instructor verification documents / admin notes", st, rows)
 
+
+    # ------------------------------------------------------------------ 0023: edits to a LIVE course go back to admin review
+    def live_course(tag, instructor=None):
+        """A fresh PUBLISHED, previously-approved course (+ section, lesson, resources, quiz, question, assignment) owned by instructor I."""
+        inst = instructor or F["I"]
+        def mk(sql, params):
+            st, rows = s.run(sql, params, role="postgres")
+            assert st == "OK", rows
+            return rows[0][0]
+        c = mk("insert into public.courses (instructor_id,title,slug,status,price_w3tr,reviewed_at,review_notes) values (%s,%s,%s,'published',10,now(),'approved') returning id", (inst, f"Live {tag}", f"live-{tag}"))
+        sec = mk("insert into public.course_sections (course_id,title) values (%s,'S') returning id", (c,))
+        les = mk("insert into public.lessons (section_id,course_id,title) values (%s,%s,'L') returning id", (sec, c))
+        qz = mk("insert into public.quizzes (course_id,title) values (%s,'Q') returning id", (c,))
+        qq = mk("insert into public.quiz_questions (quiz_id,question_text,correct_answer) values (%s,'?','\"a\"'::jsonb) returning id", (qz,))
+        lr = mk("insert into public.lesson_resources (lesson_id,title,file_url) values (%s,'R','u') returning id", (les,))
+        cr = mk("insert into public.course_resources (course_id,title,file_url) values (%s,'R','u') returning id", (c,))
+        asg = mk("insert into public.assignments (course_id,title) values (%s,'A') returning id", (c,))
+        return dict(c=c, sec=sec, les=les, qz=qz, qq=qq, lr=lr, cr=cr, asg=asg)
+
+    def status_of(c):
+        return s.run("select status::text from public.courses where id=%s", (c,), role="postgres")[1][0][0]
+
+    def edit_attack(i, title, tag, sql, params_fn, who="I"):
+        """The edit is the 'attack': it is EXPLOITABLE if it goes through while the course stays published (no review)."""
+        L = live_course(tag)
+        st, res = s.run(sql, params_fn(L), uid=F[who])
+        if st == "OK" and status_of(L["c"]) == "published":
+            add(i, "attack", title, "EXPLOITABLE", "edit accepted, course still published")
+        else:
+            add(i, "attack", title, "BLOCKED", "course sent back to review" if st == "OK" else res)
+
+    edit_attack("E-title", "Instructor changes the TITLE of a live course", "title", "update public.courses set title='Changed after approval' where id=%s", lambda L: (L["c"],))
+    edit_attack("E-price", "Instructor changes the PRICE of a live course", "price", "update public.courses set price_w3tr=0 where id=%s", lambda L: (L["c"],))
+    edit_attack("E-description", "Instructor changes the DESCRIPTION of a live course", "desc", "update public.courses set description='new text' where id=%s", lambda L: (L["c"],))
+    edit_attack("E-thumbnail", "Instructor changes the THUMBNAIL of a live course", "thumb", "update public.courses set thumbnail_url='https://x/y.png' where id=%s", lambda L: (L["c"],))
+    edit_attack("E-section-add", "Instructor ADDS a section to a live course", "secadd", "insert into public.course_sections (course_id,title) values (%s,'New') returning id", lambda L: (L["c"],))
+    edit_attack("E-section-edit", "Instructor RENAMES a section of a live course", "secedit", "update public.course_sections set title='Renamed' where id=%s", lambda L: (L["sec"],))
+    edit_attack("E-lesson-add", "Instructor ADDS a lesson to a live course", "lesadd", "insert into public.lessons (section_id,course_id,title) values (%s,%s,'New lesson') returning id", lambda L: (L["sec"], L["c"]))
+    edit_attack("E-lesson-edit", "Instructor EDITS a lesson of a live course", "lesedit", "update public.lessons set title='Edited lesson', content_url='https://x/v.mp4' where id=%s", lambda L: (L["les"],))
+    edit_attack("E-lesson-delete", "Instructor DELETES a lesson of a live course", "lesdel", "delete from public.lessons where id=%s", lambda L: (L["les"],))
+    edit_attack("E-lesson-resource", "Instructor adds a lesson RESOURCE to a live course", "lres", "insert into public.lesson_resources (lesson_id,title,file_url) values (%s,'New','u') returning id", lambda L: (L["les"],))
+    edit_attack("E-lesson-resource-del", "Instructor deletes a lesson resource of a live course", "lresdel", "delete from public.lesson_resources where id=%s", lambda L: (L["lr"],))
+    edit_attack("E-course-resource", "Instructor adds a course RESOURCE to a live course", "cres", "insert into public.course_resources (course_id,title,file_url) values (%s,'New','u') returning id", lambda L: (L["c"],))
+    edit_attack("E-quiz-add", "Instructor ADDS a quiz to a live course", "quizadd", "insert into public.quizzes (course_id,title) values (%s,'New quiz') returning id", lambda L: (L["c"],))
+    edit_attack("E-question-add", "Instructor ADDS a quiz question to a live course", "qadd", "insert into public.quiz_questions (quiz_id,question_text,correct_answer) values (%s,'New?','\"b\"'::jsonb) returning id", lambda L: (L["qz"],))
+    edit_attack("E-question-edit", "Instructor CHANGES a quiz question's answer on a live course", "qedit", "update public.quiz_questions set correct_answer='\"c\"'::jsonb where id=%s", lambda L: (L["qq"],))
+    edit_attack("E-question-delete", "Instructor DELETES a quiz question of a live course", "qdel", "delete from public.quiz_questions where id=%s", lambda L: (L["qq"],))
+    edit_attack("E-assignment", "Instructor adds an ASSIGNMENT to a live course", "asg", "insert into public.assignments (course_id,title) values (%s,'New HW') returning id", lambda L: (L["c"],))
+
+    L = live_course("feature")
+    st, rows = s.run("update public.courses set is_featured=true where id=%s returning id", (L["c"],), uid=F["I"])
+    attack("E-feature", "Instructor features their OWN course (a staff-only decision)", st, rows, lambda r: len(r) == 1)
+    st, rows = s.run("update public.courses set is_featured=true where id=%s returning id", (L["c"],), uid=F["M"])
+    legit("E-legit-feature-staff", "An admin can still feature a course", st, rows, lambda r: len(r) == 1)
+
+    # ---- what the flip must DO ----
+    L = live_course("flipfx")
+    s.run("update public.courses set title='Live flipfx (edited)' where id=%s", (L["c"],), uid=F["I"], fetch=False)
+    st, rows = s.run("select status::text, reviewed_at is null, review_notes is null from public.courses where id=%s", (L["c"],), role="postgres")
+    legit("E-legit-flip-state", "After an edit: status is pending_review and the old approval is cleared", st, rows,
+          lambda r: r[0][0] == "pending_review" and r[0][1] is True and r[0][2] is True)
+    def n(profile, ttl):
+        return s.run("select count(*) from public.notifications where profile_id=%s and title=%s and body like %s", (profile, ttl, "%Live flipfx%"), role="postgres")[1][0][0]
+    got = (n(F["I"], "Course resubmitted for review"), n(F["M"], "Course needs re-review"), n(F["SA"], "Course needs re-review"), n(F["MOD"], "Course needs re-review"), n(F["A"], "Course needs re-review"))
+    legit("E-legit-notify", "…the instructor and every admin/super admin are notified once (not moderators or students)", "OK", got, lambda g: g == (1, 1, 1, 0, 0))
+    s.run("update public.courses set title='Live flipfx (edited again)' where id=%s", (L["c"],), uid=F["I"], fetch=False)
+    s.run("insert into public.lessons (section_id,course_id,title) values (%s,%s,'one more')", (L["sec"], L["c"]), uid=F["I"], fetch=False)
+    got2 = (n(F["I"], "Course resubmitted for review"), n(F["M"], "Course needs re-review"), n(F["SA"], "Course needs re-review"))
+    legit("E-legit-no-spam", "…and further edits while it is already pending do not send more notifications", "OK", got2, lambda g: g == (1, 1, 1))
+    st, rows = s.run("update public.courses set status='published' where id=%s returning status::text", (L["c"],), uid=F["MOD"])
+    legit("E-legit-reapprove", "A moderator can approve the edited course again", st, rows, lambda r: r[0][0] == "published")
+    s.run("update public.courses set price_w3tr=77 where id=%s", (L["c"],), uid=F["I"], fetch=False)
+    legit("E-legit-cycle", "…and a later edit by the instructor sends it back to review again", "OK", status_of(L["c"]), lambda v: v == "pending_review")
+
+    # ---- what the rule must NOT touch ----
+    L = live_course("draft")
+    s.run("update public.courses set status='draft' where id=%s", (L["c"],), role="postgres", fetch=False)
+    s.run("update public.courses set title='Still a draft' where id=%s", (L["c"],), uid=F["I"], fetch=False)
+    legit("E-legit-draft", "Editing a DRAFT course leaves it a draft (no review, no notifications)", "OK", status_of(L["c"]), lambda v: v == "draft")
+
+    L = live_course("noop")
+    st, rows = s.run("update public.courses set title=title where id=%s returning id", (L["c"],), uid=F["I"])
+    legit("E-legit-noop", "Saving a live course without changing anything does not trigger review", st, rows, lambda r: status_of(L["c"]) == "published")
+
+    for who, label in (("MOD", "A moderator"), ("M", "An admin")):
+        L = live_course("staff" + who)
+        st, rows = s.run("update public.courses set title='Staff edit' where id=%s returning id", (L["c"],), uid=F[who])
+        legit(f"E-legit-staff-{who}", f"{label} editing a live course does NOT send it to review (they are the review)", st, rows, lambda r: len(r) == 1 and status_of(L["c"]) == "published")
+        if who == "M":   # (only admins and the course's instructor may write lessons — moderators cannot, by existing policy)
+            st, rows = s.run("insert into public.lessons (section_id,course_id,title) values (%s,%s,'staff lesson') returning id", (L["sec"], L["c"]), uid=F[who])
+            legit(f"E-legit-staff-lesson-{who}", f"{label} adding a lesson does NOT send it to review", st, rows, lambda r: status_of(L["c"]) == "published")
+
+    L = live_course("counters")
+    s.run("insert into public.enrollments (student_id,course_id) values (%s,%s)", (F["A"], L["c"]), role="service_role", fetch=False)
+    legit("E-legit-counter-enrol", "A student enrolling (enrolment counter changes) does NOT send the course to review", "OK", status_of(L["c"]), lambda v: v == "published")
+    s.run("insert into public.course_reviews (course_id, student_id, rating) values (%s,%s,5)", (L["c"], F["A"]), uid=F["A"], fetch=False)
+    s.run("insert into public.course_reviews (course_id, student_id, rating) values (%s,%s,5)", (L["c"], F["A"]), role="service_role", fetch=False)
+    legit("E-legit-counter-rating", "A student leaving a rating (rating counters change) does NOT send it to review", "OK", status_of(L["c"]), lambda v: v == "published")
+    ea = s.run("select id from public.enrollments where student_id=%s and course_id=%s", (F["A"], L["c"]), role="postgres")[1][0][0]
+    s.run("select (public.complete_lesson(%s,%s)).is_completed", (ea, L["les"]), role="service_role", fetch=False)
+    legit("E-legit-counter-complete", "A student completing the course (completion counter) does NOT send it to review", "OK", status_of(L["c"]), lambda v: v == "published")
+
+    L = live_course("access")
+    s.run("insert into public.enrollments (student_id,course_id) values (%s,%s)", (F["A"], L["c"]), role="service_role", fetch=False)
+    s.run("update public.courses set title='Edited while students are enrolled' where id=%s", (L["c"],), uid=F["I"], fetch=False)
+    st, rows = s.run("select id from public.lessons where course_id=%s", (L["c"],), uid=F["A"])
+    legit("E-legit-enrolled-access", "Already-enrolled students keep access to the lessons while the course is back in review", st, rows,
+          lambda r: len(r) >= 1 and status_of(L["c"]) == "pending_review")
+    st, rows = s.run("select id from public.courses where id=%s and status='published'", (L["c"],), role="anon")
+    attack("E-hidden-from-catalogue", "The course is STILL visible in the public catalogue while it is in review", st, rows, lambda r: len(r) > 0)
+
     return R
 
 def report(R, phase):

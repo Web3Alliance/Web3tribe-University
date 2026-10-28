@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
-Replays the BugBunny audit findings (and the extra holes found in the code review) against a
-throw-away local PostgreSQL, twice:
+Replays the BugBunny audit findings (plus the extra holes found in the code review, and the
+"edits to a live course must go back to review" rule) against a throw-away local PostgreSQL in
+three states:
 
-  BEFORE = your migrations 0001-0021          -> attacks are expected to WORK (proves the replica is faithful)
-  AFTER  = 0001-0022 (0022 is also run twice  -> every attack must be BLOCKED and every legitimate
-           to prove it is idempotent)            action must still WORK
+  BEFORE      = migrations 0001-0021 (before the audit fix) -> attacks are expected to WORK
+                                                               (proves the replica is faithful)
+  AFTER 0022  = + the audit fix                             -> informational (what was live first)
+  AFTER       = everything (0001-latest)                    -> every attack must be BLOCKED and every
+                legitimate action must still WORK. Migrations 0022 and 0023 are also run a second
+                time on this database to prove they are idempotent.
 
 Exit code 0 only if AFTER has no exploitable attack and no broken legitimate check.
 Nothing here touches your real Supabase project: it runs on an embedded, temporary Postgres.
@@ -21,7 +25,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pgserver
 import pgh, suite
 
-FIX = os.path.join(pgh.REPO, "supabase", "migrations", "0022_security_hardening.sql")
+LATEST = "0023"
+RERUN = ["0022_security_hardening.sql", "0023_enforce_review_on_edit.sql"]   # run twice on the final database
 
 
 def main():
@@ -32,16 +37,25 @@ def main():
     uri = server.get_uri()
     pgh.HOST = urllib.parse.parse_qs(urllib.parse.urlparse(uri).query)["host"][0]
 
-    plan = [("w3t_after", True, "after")] if after_only else [("w3t_before", False, "before"), ("w3t_after", True, "after")]
+    plan = [("w3t_after", LATEST, "after")] if after_only else [
+        ("w3t_before", "0021", "before"),
+        ("w3t_0022", "0022", "after 0022"),
+        ("w3t_after", LATEST, "after"),
+    ]
     summary = {}
-    for db, with_fix, phase in plan:
+    for db, upto, phase in plan:
         pgh.fresh_db(db)
-        problems = pgh.apply_migrations(db, with_fix=with_fix)
+        problems = pgh.apply_migrations(db, upto=upto)
         if problems:
             print("MIGRATION PROBLEMS:", problems)
             return 2
-        if with_fix:
-            pgh.run_sql_file(db, FIX)                      # second run of 0022: must be a no-op, not an error
+        if phase == "after":
+            for name in RERUN:                              # second run of each fix: must be a no-op, not an error
+                try:
+                    pgh.run_sql_file(db, os.path.join(pgh.REPO, "supabase", "migrations", name))
+                except Exception as e:
+                    print(f"{name} FAILED when run a second time (not idempotent): {e}")
+                    return 2
         R = suite.run_suite(db)
         exploitable, broken = suite.report(R, phase)
         summary[phase] = (len(exploitable), len(broken))

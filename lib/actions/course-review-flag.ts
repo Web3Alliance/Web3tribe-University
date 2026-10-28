@@ -17,6 +17,12 @@ import { notifyUser, notifyAdmins } from "@/lib/notify";
  * course's content: details, curriculum (sections/lessons/resources), and
  * quizzes/questions. Safe to call even when the course isn't published —
  * it's a no-op for courses in any other status.
+ *
+ * Since migration 0023 the DATABASE enforces the same rule (triggers on courses, sections,
+ * lessons, resources, quizzes, questions and assignments move a live course to
+ * pending_review and send the notifications, whatever path made the edit). When that is in
+ * place this helper simply finds the course already in review and does nothing, so it can
+ * never double-notify. It is kept for environments where 0023 has not been run yet.
  */
 export async function flagCourseForReReviewIfPublished(
   supabase: SupabaseClient,

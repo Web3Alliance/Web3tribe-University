@@ -24,17 +24,13 @@ def run_sql_file(dbname, path):
     with admin_conn(dbname) as c:
         c.execute(sql)
 
-def apply_migrations(dbname, extra=None, upto=None, with_fix=False):
+def apply_migrations(dbname, upto="0021"):
+    """Apply shim + every migration numbered <= upto (e.g. '0021' = what you had before the audit fix)."""
     run_sql_file(dbname, f"{HARNESS}/shim.sql")
     files = sorted(glob.glob(f"{REPO}/supabase/migrations/*.sql"))
-    files = [f for f in files if with_fix or os.path.basename(f) < "0022"]   # 'before' = exactly the 21 migrations you have today
+    files = [f for f in files if os.path.basename(f)[:4] <= upto]
     problems = []
     for f in files:
-        try:
-            run_sql_file(dbname, f)
-        except Exception as e:
-            problems.append((os.path.basename(f), str(e).strip().splitlines()[0]))
-    for f in (extra or []):
         try:
             run_sql_file(dbname, f)
         except Exception as e:

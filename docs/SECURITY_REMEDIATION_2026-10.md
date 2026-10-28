@@ -35,9 +35,12 @@ enrolment until the new code is live.
 1. Confirm `SUPABASE_SERVICE_ROLE_KEY` is set in Netlify (it already is if certificates/payments work). It is now also required for rewards, enrolment and quizzes.
 2. Deploy the application commit.
 3. Supabase → SQL editor → paste `supabase/migrations/0022_security_hardening.sql` → Run. (Idempotent: safe to run twice.)
-4. Run the smoke tests below.
-5. Run `supabase/security/post-incident-checks.sql` (read-only) to look for signs that the holes were used before the fix.
-6. Re-run the BugBunny audit to get an independent confirmation.
+4. Run `supabase/security/verify-0022-applied.sql` in the SQL editor — 38 read-only checks that the migration is fully applied in *this* Supabase project. Every row must say PASS.
+5. Run the live retest from your machine (safe: reads and harmless refused-call probes only; uses your own `.env.local`):
+   `node --env-file=.env.local supabase/security/live-retest.mjs` — every line must say PASS.
+6. Run the smoke tests below.
+7. Run `supabase/security/post-incident-checks.sql` (read-only) to look for signs that the holes were used before the fix.
+8. Re-run the BugBunny audit to get an independent confirmation.
 
 ### Smoke tests (~10 minutes)
 
@@ -66,3 +69,28 @@ enrolment until the new code is live.
 * `python3 supabase/tests/security/run_all.py` — on a local replica built from migrations 0001–0021: **47/48 attacks succeed** (the one that doesn't, direct wallet writes, matches the report). After 0022: **0/48 succeed, 63/63 legitimate actions still work**, and 0022 re-runs cleanly.
 * `npm test` 116 passing (69 before), `tsc --noEmit` clean, `eslint .` clean, `next build` succeeds.
 * Limits: the replica is built from the migration files, so manual dashboard changes in production are not in it; the Storage HTTP service and a real browser session are not simulated (see smoke tests).
+
+## Follow-up (0023): edits to a live course always go back to admin review
+
+**Gap found:** the in-app flow (`lib/actions/course-review-flag.ts`) already sent a published course back to review when the instructor edited it through the normal screens. But the rule lived only in application code: `PATCH /api/courses/[id]` never called it, and the database API accepts direct edits, so an approved course could have its title, price or content changed with no review.
+
+**Fix:** `supabase/migrations/0023_enforce_review_on_edit.sql` enforces the rule in the database, for every path:
+
+| Edit by the course's instructor on a *published* course | Result |
+|---|---|
+| Course details (title, price, description, thumbnail, tags …) | Course → `pending_review`, approval cleared, instructor + all admins notified once |
+| Sections, lessons, lesson/course resources, quizzes, quiz questions, assignments (add / change / delete) | Same |
+| Saving with no change; editing a draft or an already-pending course | Nothing happens (no spam) |
+| Edits by moderators/admins, the server, or counters changing as students learn (enrolments, ratings, completions) | Not treated as an instructor edit |
+
+Enrolled students keep access while a course is in review (migration 0017); it leaves the public catalogue until approved. Also closed: an instructor can no longer mark their own course `is_featured` (staff decision).
+
+**Deploy:** run the migration in the Supabase SQL editor — **no application deploy is needed** and the order relative to any deploy doesn't matter (the app helper finds the course already in review and does nothing, so nothing is notified twice). Then run `supabase/security/verify-0023-applied.sql` (11 checks, all must PASS).
+
+**Smoke test (2 minutes):** as an instructor, edit the title of one of your *published* courses → its badge changes to "Pending review" and it leaves `/student/courses`; an admin sees a "Course needs re-review" notification; the admin approves it → it is public again.
+
+**Evidence:** `python3 supabase/tests/security/run_all.py` now replays 67 attacks and 78 legitimate-use checks across three states. On the database as it is today (0001–0022) 19 attacks work (18 edit bypasses + self-featuring); after 0023: **0 of 67 work and all 78 legitimate checks pass**, and both 0022 and 0023 re-run cleanly.
+
+**Rolling back (only if something unexpected happens):** the rule can be switched off without touching data —
+`drop trigger if exists trg_courses_review_on_edit on public.courses;` and `drop trigger if exists trg_review_on_edit on public.<table>;` for course_sections, lessons, lesson_resources, course_resources, quizzes, quiz_questions, assignments. The in-app helper keeps working on its own.
+
