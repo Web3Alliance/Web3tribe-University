@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/rbac";
 import { getRewardEngine } from "@/lib/reward-engine";
 import { gradeQuizAttempt } from "@/lib/quiz-grading";
+import { TOKENOMICS } from "@/lib/tokenomics";
 
 interface SubmitQuizBody {
   answers: Record<string, unknown>;
@@ -90,7 +91,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     await rewardEngine.award(
       profile.id,
       quiz.is_final_exam ? "exam_pass" : "quiz_pass",
-      Number(quiz.w3tr_reward),
+      // Fixed platform amounts - never the stored value, which an author could once edit.
+      // The database pays each quiz once per learner and never on your own/unpublished course.
+      quiz.is_final_exam ? TOKENOMICS.FINAL_EXAM_PASS_REWARD : TOKENOMICS.LESSON_QUIZ_PASS_REWARD,
       { referenceTable: "quizzes", referenceId: quizId, description: `Passed "${quiz.title}"` }
     );
   }

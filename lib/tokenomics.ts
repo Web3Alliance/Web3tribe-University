@@ -47,3 +47,9 @@ export const TOKENOMICS = {
   /** Quiz retakes are effectively unlimited so students can always try again after a fail. */
   MAX_QUIZ_ATTEMPTS: 999,
 } as const;
+
+/**
+ * A certificate is only issued after a final exam with at least this many questions
+ * (enforced in the database: certificate_block_reason, migration 0024).
+ */
+export const MIN_FINAL_EXAM_QUESTIONS = 10;

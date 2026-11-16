@@ -1,5 +1,6 @@
 import { FileText, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { documentHref } from "@/lib/document-links";
 
 interface ResourceItem {
   id: string;
@@ -20,7 +21,7 @@ export function CourseResourcesList({ resources }: { resources: ResourceItem[] }
         {resources.map((r) => (
           <a
             key={r.id}
-            href={r.file_url}
+            href={documentHref(r.file_url)}
             target="_blank"
             rel="noreferrer"
             className="flex items-center justify-between rounded-md border border-border p-3 text-sm transition-colors hover:bg-secondary/50"

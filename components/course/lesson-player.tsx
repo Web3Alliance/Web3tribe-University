@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { completeLessonAction } from "@/lib/actions/lessons";
 import { resolveVideoEmbed } from "@/lib/media-embed";
 import type { Lesson } from "@/lib/types";
+import { documentHref } from "@/lib/document-links";
 
 function LessonMedia({ lesson }: { lesson: Lesson }) {
   if (lesson.content_type === "video" || lesson.content_type === "embed") {
@@ -112,7 +113,7 @@ export function LessonPlayer({
             {lesson.lesson_resources.map((r) => (
               <li key={r.id}>
                 <a
-                  href={r.file_url}
+                  href={documentHref(r.file_url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-sm text-primary hover:underline"

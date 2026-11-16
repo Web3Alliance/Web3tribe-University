@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { addLessonResourceAction, deleteLessonResourceAction } from "@/lib/actions/courses";
 import type { LessonResource } from "@/lib/types";
+import { documentHref } from "@/lib/document-links";
 
 function formatFileSize(bytes: number | null): string {
   if (!bytes) return "";
@@ -94,7 +95,7 @@ export function LessonResourceManager({
             const Icon = iconForType(r.file_type);
             return (
               <li key={r.id} className="flex items-center justify-between gap-2 rounded-md bg-secondary/40 px-2.5 py-1.5 text-xs">
-                <a href={r.file_url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-1.5 hover:underline">
+                <a href={documentHref(r.file_url)} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-1.5 hover:underline">
                   <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <span className="truncate">{r.title}</span>
                   {r.file_size_bytes && <span className="shrink-0 text-muted-foreground">({formatFileSize(r.file_size_bytes)})</span>}

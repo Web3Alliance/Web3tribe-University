@@ -435,6 +435,123 @@ def run_suite(db):
     st, rows = s.run("select id from public.courses where id=%s and status='published'", (L["c"],), role="anon")
     attack("E-hidden-from-catalogue", "The course is STILL visible in the public catalogue while it is in review", st, rows, lambda r: len(r) > 0)
 
+
+    # ================================================================== 0024: BugBunny report cc6b1c2
+    pg = lambda sql, p=(): s.run(sql, p, role="postgres")
+    def one0(sql, p=()):
+        st, rows = pg(sql, p)
+        assert st == "OK", rows
+        return rows[0][0]
+
+    # ---- #1 students must not be able to author courses ----
+    st, rows = s.run("insert into public.courses (instructor_id,title,slug,status) values (%s,'Farm','farm-1','draft') returning id", (F["B"],), uid=F["B"])
+    attack("G1-student-creates-course", "A STUDENT creates their own course", st, rows)
+    mine = one0("insert into public.courses (instructor_id,title,slug,status) values (%s,'B-owned','b-owned','draft') returning id", (F["B"],))
+    msec = one0("insert into public.course_sections (course_id,title) values (%s,'s') returning id", (mine,))
+    st, rows = s.run("insert into public.course_sections (course_id,title) values (%s,'s2') returning id", (mine,), uid=F["B"])
+    attack("G1-student-section", "A student adds a section to a course row they own", st, rows)
+    st, rows = s.run("insert into public.lessons (section_id,course_id,title) values (%s,%s,'x') returning id", (msec, mine), uid=F["B"])
+    attack("G1-student-lesson", "A student adds a lesson to a course row they own", st, rows)
+    st, rows = s.run("insert into public.quizzes (course_id,title) values (%s,'q') returning id", (mine,), uid=F["B"])
+    attack("G1-student-quiz", "A student adds a quiz to a course row they own", st, rows)
+    st, rows = s.run("insert into public.course_resources (course_id,title,file_url) values (%s,'r','https://x/y.pdf') returning id", (mine,), uid=F["B"])
+    attack("G1-student-resource", "A student attaches a resource to a course row they own", st, rows)
+    st, rows = s.run("insert into public.courses (instructor_id,title,slug,status) values (%s,'Mine','inst-new','draft') returning id", (F["I"],), uid=F["I"])
+    legit("G1-legit-instructor-course", "An instructor can still create a course", st, rows, lambda r: len(r) == 1)
+    new_c = rows[0][0] if st == "OK" else None
+    st, rows = s.run("insert into public.course_sections (course_id,title) values (%s,'s') returning id", (new_c,), uid=F["I"])
+    legit("G1-legit-instructor-section", "…and add sections", st, rows, lambda r: len(r) == 1)
+    nsec = rows[0][0] if st == "OK" else None
+    st, rows = s.run("insert into public.lessons (section_id,course_id,title) values (%s,%s,'Lesson') returning id", (nsec, new_c), uid=F["I"])
+    legit("G1-legit-instructor-lesson", "…and lessons", st, rows, lambda r: len(r) == 1)
+    st, rows = s.run("insert into public.quizzes (course_id,title) values (%s,'Quiz') returning id", (new_c,), uid=F["I"])
+    legit("G1-legit-instructor-quiz", "…and quizzes", st, rows, lambda r: len(r) == 1)
+
+    # ---- #1 reward amounts are not author-controlled ----
+    st, rows = s.run("insert into public.lessons (section_id,course_id,title,w3tr_reward) values (%s,%s,'Rich',9999) returning w3tr_reward", (nsec, new_c), uid=F["I"])
+    attack("G2-lesson-reward-insert", "Instructor creates a lesson paying 9,999 W3TR", st, rows, lambda r: float(r[0][0]) > 1)
+    st, rows = s.run("insert into public.quizzes (course_id,title,w3tr_reward) values (%s,'RichQ',9999) returning w3tr_reward", (new_c,), uid=F["I"])
+    attack("G2-quiz-reward-insert", "Instructor creates a quiz paying 9,999 W3TR", st, rows, lambda r: float(r[0][0]) > 2)
+    st, rows = s.run("update public.lessons set w3tr_reward=5000 where id=%s returning w3tr_reward", (F["L1"],), uid=F["I"])
+    attack("G2-lesson-reward-update", "Instructor raises an existing lesson's reward to 5,000", st, rows, lambda r: len(r) == 1 and float(r[0][0]) > 1)
+    st, rows = s.run("update public.lessons set w3tr_reward=7 where id=%s returning w3tr_reward", (F["L3"],), uid=F["M"])
+    legit("G2-legit-admin-reward", "An admin can still change a lesson's reward", st, rows, lambda r: float(r[0][0]) == 7)
+
+    # ---- #1 rewards: once per item, never on own / unpublished course ----
+    qid = one0("insert into public.quizzes (course_id,title,is_final_exam) values (%s,'Farm quiz',false) returning id", (F["C1"],))
+    bal = lambda u: float(one0("select coalesce((select balance from public.w3tr_wallets where profile_id=%s),0)", (u,)))
+    b0 = bal(F["B"])
+    s.run("select public.award_w3tr(%s,'quiz_pass',2,'quizzes',%s,'p1',null)", (F["B"], qid), role="service_role", fetch=False)
+    legit("G3-legit-first-reward", "A learner's first pass of a quiz is rewarded", "OK", bal(F["B"]) - b0, lambda d: d == 2)
+    for _ in range(3):
+        s.run("select public.award_w3tr(%s,'quiz_pass',2,'quizzes',%s,'again',null)", (F["B"], qid), role="service_role", fetch=False)
+    attack("G3-repeat-reward", "Passing the SAME quiz again keeps paying out", "OK", bal(F["B"]) - b0, lambda d: d > 2)
+    s.run("select public.award_w3tr(%s,'lesson_complete',1,'lessons',%s,'l',null)", (F["B"], F["L1"]), role="service_role", fetch=False)
+    b1 = bal(F["B"])
+    s.run("select public.award_w3tr(%s,'lesson_complete',1,'lessons',%s,'l again',null)", (F["B"], F["L1"]), role="service_role", fetch=False)
+    attack("G3-repeat-lesson", "Completing the same lesson again keeps paying out", "OK", bal(F["B"]) - b1, lambda d: d > 0)
+    ownq = one0("insert into public.quizzes (course_id,title) values (%s,'own quiz') returning id", (F["C1"],))
+    i0 = bal(F["I"])
+    s.run("select public.award_w3tr(%s,'quiz_pass',2,'quizzes',%s,'own',null)", (F["I"], ownq), role="service_role", fetch=False)
+    attack("G3-own-course", "An instructor earns rewards by passing their OWN course's quiz", "OK", bal(F["I"]) - i0, lambda d: d > 0)
+    dq = one0("insert into public.quizzes (course_id,title) values (%s,'draft quiz') returning id", (mine,))
+    b2 = bal(F["B"])
+    s.run("select public.award_w3tr(%s,'quiz_pass',2,'quizzes',%s,'draft',null)", (F["A"], dq), role="service_role", fetch=False)
+    a2 = bal(F["A"])
+    s.run("select public.award_w3tr(%s,'quiz_pass',2,'quizzes',%s,'draft',null)", (F["B"], dq), role="service_role", fetch=False)
+    attack("G3-draft-course", "Rewards are paid on a DRAFT (never published) course", "OK", bal(F["B"]) - b2, lambda d: d > 0)
+    st, rows = s.run("select (public.award_w3tr(%s,'quiz_pass',2,'quizzes',%s,'x',null)).amount", (F["B"], qid), uid=F["B"])
+    attack("G3-rpc-direct", "Logged-in student calls award_w3tr directly", st, rows)
+
+    # ---- #4 certificates ----
+    def cert_course(tag, verified, status="published", questions=10, passed=True, own=False, exam=True):
+        inst = one0("select id from auth.users where email=%s", (f"{tag}-inst@t.test",)) if False else pgh.signup(db, f"{tag}-inst@t.test", {"role": "instructor", "full_name": tag})
+        if verified:
+            pg("update public.profiles set is_instructor_verified=true where id=%s", (inst,))
+        c = one0("insert into public.courses (instructor_id,title,slug,status) values (%s,%s,%s,%s) returning id", (inst, tag, f"cert-{tag}", status))
+        stu = inst if own else F["A"]
+        pg("insert into public.enrollments (student_id,course_id,status) values (%s,%s,'completed') on conflict do nothing", (stu, c))
+        if exam:
+            q = one0("insert into public.quizzes (course_id,title,is_final_exam) values (%s,'Final',true) returning id", (c,))
+            for n in range(questions):
+                pg("insert into public.quiz_questions (quiz_id,question_text,correct_answer) values (%s,%s,'\"a\"'::jsonb)", (q, f"Q{n}"))
+            if passed:
+                pg("insert into public.quiz_attempts (quiz_id,student_id,status,passed,score_percent) values (%s,%s,'graded',true,100)", (q, stu))
+        return c, stu
+    def reason(c, stu):
+        st, rows = s.run("select public.certificate_block_reason(%s,%s,10)", (stu, c), role="service_role")
+        return rows[0][0] if st == "OK" else "ERROR " + str(rows)
+    for tag, kw, title in [
+        ("unver", dict(verified=False), "Certificate for a course whose instructor is NOT verified"),
+        ("draftc", dict(verified=True, status="draft"), "Certificate for a DRAFT course"),
+        ("noexam", dict(verified=True, exam=False), "Certificate for a course with NO final exam"),
+        ("oneq", dict(verified=True, questions=1), "Certificate after a 1-question 'final exam'"),
+        ("nopass", dict(verified=True, passed=False), "Certificate without passing the final exam"),
+        ("selfc", dict(verified=True, own=True), "Instructor earns a certificate for their own course"),
+    ]:
+        c, stu = cert_course(tag, **kw)
+        attack(f"G4-{tag}", title, "OK", reason(c, stu), lambda r: r is None)
+    c, stu = cert_course("goodc", verified=True)
+    legit("G4-legit-eligible", "A completed, verified, published course with a real passed final exam IS eligible", "OK", reason(c, stu), lambda r: r is None)
+
+    # ---- #3 paid documents ----
+    rc = one0("insert into public.course_resources (course_id,title,file_url) values (%s,'Paid notes',%s) returning id", (F["C2"], "https://x.supabase.co/storage/v1/object/public/course-documents/paid-notes.pdf"))
+    st, rows = s.run("select file_url from public.course_resources", role="anon")
+    attack("G5-anon-resources", "ANONYMOUS caller reads paid-course resource file links", st, rows, lambda r: len(r) > 0)
+    st, rows = s.run("select file_url from public.course_resources", uid=F["B"])
+    attack("G5-other-student-resources", "A non-enrolled student reads paid-course resource file links", st, rows, lambda r: len(r) > 0)
+    pg("insert into public.enrollments (student_id,course_id) values (%s,%s) on conflict do nothing", (F["A"], F["C2"]))
+    st, rows = s.run("select file_url from public.course_resources where course_id=%s", (F["C2"],), uid=F["A"])
+    legit("G5-legit-enrolled", "An ENROLLED student still sees the course's resources", st, rows, lambda r: len(r) == 1)
+    st, rows = s.run("select file_url from public.course_resources where course_id=%s", (F["C2"],), uid=F["J"])
+    legit("G5-legit-owner", "The course's instructor still sees their resources", st, rows, lambda r: len(r) == 1)
+    st, rows = s.run("select file_url from public.course_resources where course_id=%s", (F["C2"],), uid=F["MOD"])
+    legit("G5-legit-moderator", "A moderator still sees resources (review)", st, rows, lambda r: len(r) == 1)
+    st, rows = s.run("select public from storage.buckets where id='course-documents'", role="postgres")
+    attack("G5-bucket-public", "The course-documents bucket is still PUBLIC (direct URLs work for anyone)", st, rows, lambda r: r and r[0][0] is True)
+    st, rows = s.run("select count(*) from pg_policies where schemaname='storage' and policyname='course_documents_public_read'", role="postgres")
+    attack("G5-public-read-policy", "The public-read storage policy for course documents still exists", st, rows, lambda r: r[0][0] > 0)
+
     return R
 
 def report(R, phase):
