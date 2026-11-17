@@ -80,6 +80,7 @@ export function CurriculumBuilder({ courseId, sections, quizzesByLessonId, final
 
           <div className="flex flex-col gap-2 rounded-lg border border-dashed border-border p-3 sm:flex-row">
             <Input
+              aria-label="New section title"
               placeholder="New section title (e.g. Getting Started)"
               value={newSectionTitle}
               onChange={(e) => setNewSectionTitle(e.target.value)}
@@ -135,7 +136,7 @@ function SectionBlock({
               <AddLessonForm courseId={courseId} sectionId={section.id} onDone={() => setDialogOpen(false)} />
             </DialogContent>
           </Dialog>
-          <Button size="icon" variant="ghost" onClick={handleDeleteSection} disabled={isPending}>
+          <Button size="icon" variant="ghost" onClick={handleDeleteSection} disabled={isPending} aria-label="Delete section">
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
         </div>

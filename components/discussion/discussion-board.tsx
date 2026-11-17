@@ -120,7 +120,7 @@ function NewThreadForm({ courseId, courseSlug }: { courseId: string; courseSlug:
   return (
     <Card>
       <CardContent className="space-y-3 p-4">
-        <Input placeholder="Question title…" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <Input aria-label="Question title" placeholder="Question title…" value={title} onChange={(e) => setTitle(e.target.value)} />
         <Textarea
           placeholder="Ask your instructor or fellow students a question…"
           value={body}
@@ -309,6 +309,7 @@ function ReplyForm({ threadId, courseId, courseSlug }: { threadId: string; cours
   return (
     <div className="flex gap-2">
       <Input
+        aria-label="Write a reply"
         placeholder="Write a reply…"
         value={body}
         onChange={(e) => setBody(e.target.value)}

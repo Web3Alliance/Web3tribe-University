@@ -76,6 +76,13 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <NextIntlClientProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             <AuthProvider>
+              {/* Lets keyboard and screen-reader users jump past the navigation. */}
+              <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-lg focus:ring-2 focus:ring-ring"
+              >
+                Skip to main content
+              </a>
               {children}
               <Toaster position="top-right" richColors closeButton />
               <ServiceWorkerRegistration />

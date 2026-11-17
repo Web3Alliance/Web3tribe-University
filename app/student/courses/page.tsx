@@ -69,7 +69,7 @@ export default async function BrowseCoursesPage({
       <form className="grid gap-3 sm:grid-cols-4" method="get">
         <div className="relative sm:col-span-2">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input name="q" placeholder="Search courses…" defaultValue={params.q} className="pl-9" />
+          <Input name="q" aria-label="Search courses" placeholder="Search courses…" defaultValue={params.q} className="pl-9" />
         </div>
         <Select name="category" defaultValue={params.category}>
           <SelectTrigger>

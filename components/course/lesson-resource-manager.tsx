@@ -122,6 +122,7 @@ export function LessonResourceManager({
       {showAddForm ? (
         <div className="flex items-center gap-1.5">
           <Input
+            aria-label="Resource title"
             placeholder="Resource title, e.g. Lecture slides"
             value={title}
             onChange={(e) => setTitle(e.target.value)}

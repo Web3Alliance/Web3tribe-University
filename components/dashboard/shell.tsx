@@ -21,7 +21,7 @@ export function DashboardShell({
         <aside className="hidden w-64 shrink-0 border-r border-border bg-card md:block">
           <DashboardSidebar role={role} actualRole={actualRole} />
         </aside>
-        <main className="w-full min-w-0 flex-1 overflow-x-hidden p-3 sm:p-4 md:p-8">{children}</main>
+        <main id="main-content" tabIndex={-1} className="w-full min-w-0 flex-1 overflow-x-hidden p-3 sm:p-4 md:p-8 focus:outline-none">{children}</main>
       </div>
     </div>
   );

@@ -27,7 +27,7 @@ export default async function AdminUsersPage({
 
       <form className="relative max-w-sm" method="get">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input name="q" defaultValue={q} placeholder="Search by name…" className="pl-9" />
+        <Input name="q" aria-label="Search users by name" defaultValue={q} placeholder="Search by name…" className="pl-9" />
       </form>
 
       <div className="rounded-lg border border-border">

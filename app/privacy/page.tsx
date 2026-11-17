@@ -5,7 +5,7 @@ export const metadata = { title: "Privacy Policy" };
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto max-w-3xl space-y-8 px-4 py-12">
+    <main id="main-content" className="mx-auto max-w-3xl space-y-8 px-4 py-12">
       <Link href="/" className="flex items-center gap-2 text-lg font-bold text-primary">
         <Logo size={36} />
         Web3tribe University

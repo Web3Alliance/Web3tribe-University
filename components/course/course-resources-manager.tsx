@@ -114,7 +114,7 @@ function ResourceRow({ courseId, resource }: { courseId: string; resource: Resou
       </div>
       <div className="flex items-center gap-2">
         <Button size="icon" variant="ghost" asChild>
-          <a href={documentHref(resource.file_url)} target="_blank" rel="noreferrer">
+          <a href={documentHref(resource.file_url)} target="_blank" rel="noreferrer" aria-label={`Download ${resource.title}`}>
             <Download className="h-3.5 w-3.5" />
           </a>
         </Button>

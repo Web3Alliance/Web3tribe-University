@@ -95,7 +95,7 @@ export default async function LandingPage() {
   };
 
   return (
-    <main className="flex flex-col">
+    <main id="main-content" className="flex flex-col">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd).replace(/</g, "\\u003c") }}

@@ -104,7 +104,7 @@ export default async function OrganizationOpportunitiesPage() {
             <div className="space-y-2">
               <Label>Expected pay (required — shown to students in your country&apos;s currency)</Label>
               <div className="grid gap-4 sm:grid-cols-3">
-                <Input name="payAmount" type="number" min="1" step="0.01" placeholder="e.g. 150000" required />
+                <Input name="payAmount" aria-label="Pay amount" type="number" min="1" step="0.01" placeholder="e.g. 150000" required />
                 <Select name="payCurrency" defaultValue="NGN">
                   <SelectTrigger>
                     <SelectValue />

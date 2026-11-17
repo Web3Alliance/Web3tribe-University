@@ -143,6 +143,7 @@ export function LessonQuizPlayer({
                   </p>
                   {isSubjective ? (
                     <Input
+                      aria-label={`Answer to question ${i + 1}`}
                       value={answers[q.id] ?? ""}
                       onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
                       placeholder="Type your answer"

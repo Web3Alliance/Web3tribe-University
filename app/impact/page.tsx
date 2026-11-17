@@ -78,7 +78,7 @@ export default async function ImpactPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-12 sm:py-16">
+      <main id="main-content" className="mx-auto max-w-5xl px-4 py-12 sm:py-16">
         <div className="mx-auto max-w-2xl text-center">
           <h1 className="text-3xl font-bold sm:text-4xl">Our Impact</h1>
           <p className="mt-3 text-muted-foreground">
