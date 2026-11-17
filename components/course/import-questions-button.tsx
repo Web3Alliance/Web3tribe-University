@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import { readSheet } from "read-excel-file/browser";
 import { FileSpreadsheet, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { importQuizQuestionsAction, type ImportedQuestionRow } from "@/lib/actions/quiz-builder";
@@ -32,17 +32,25 @@ export function ImportQuestionsButton({ courseId, quizId }: { courseId: string; 
     e.target.value = ""; // allow re-selecting the same file later
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
+    // Reads .xlsx only (the downloadable template is .xlsx). The file is parsed in the browser and
+    // never uploaded; only the normalised rows below are sent to the server action.
+    (async () => {
       try {
-        const data = event.target?.result;
-        const workbook = XLSX.read(data, { type: "binary" });
-        const sheet = workbook.Sheets["Questions"];
-        if (!sheet) {
+        let grid: unknown[][];
+        try {
+          grid = (await readSheet(file, "Questions")) as unknown[][];
+        } catch {
           toast.error('Could not find a "Questions" sheet in this file. Use the downloaded template.');
           return;
         }
-        const rows = XLSX.utils.sheet_to_json<ParsedRow>(sheet, { defval: "" });
+        const header = (grid[0] ?? []).map((h) => String(h ?? "").trim());
+        const rows: ParsedRow[] = grid.slice(1).map((cells) => {
+          const row: Record<string, string> = {};
+          header.forEach((name, idx) => {
+            row[name] = cells[idx] == null ? "" : String(cells[idx]);
+          });
+          return row as ParsedRow;
+        });
 
         const importedRows: ImportedQuestionRow[] = [];
         rows.forEach((row, i) => {
@@ -102,8 +110,7 @@ export function ImportQuestionsButton({ courseId, quizId }: { courseId: string; 
       } catch {
         toast.error("Couldn't read that file. Make sure it's a .xlsx file based on the downloaded template.");
       }
-    };
-    reader.readAsBinaryString(file);
+    })();
   }
 
   return (
@@ -116,7 +123,7 @@ export function ImportQuestionsButton({ courseId, quizId }: { courseId: string; 
       <Button size="sm" variant="outline" disabled={isPending} onClick={() => fileInputRef.current?.click()}>
         <FileSpreadsheet className="h-3.5 w-3.5" /> {isPending ? "Importing…" : "Import from Excel"}
       </Button>
-      <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} />
+      <input ref={fileInputRef} type="file" accept=".xlsx" className="hidden" onChange={handleFileChange} />
     </div>
   );
 }
