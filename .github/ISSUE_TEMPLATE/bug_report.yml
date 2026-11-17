@@ -1,0 +1,21 @@
+name: Bug report
+description: Something isn't working
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Please do **not** report security vulnerabilities here — see SECURITY.md. Never paste passwords, keys or other people's personal data."
+  - type: textarea
+    id: what
+    attributes: { label: What happened?, description: What did you expect instead? }
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes: { label: Steps to reproduce }
+    validations: { required: true }
+  - type: input
+    id: where
+    attributes: { label: Page or URL }
+  - type: input
+    id: device
+    attributes: { label: Device, browser and connection, description: "e.g. Android phone, Chrome, slow 3G" }

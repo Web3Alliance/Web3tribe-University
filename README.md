@@ -26,7 +26,7 @@ This repository is being submitted to the **NextGen Innovation Challenge 2026** 
 | Certificates | Server-generated PDF via `pdf-lib` + QR verification via `qrcode` |
 | Payments | Paystack (donations); Flutterwave scaffolded behind a feature flag |
 | Testing | Vitest (unit), Playwright (E2E), plus in-memory Postgres (PGlite) migration/RLS validation |
-| Deployment | Netlify (`@netlify/plugin-nextjs`) + Supabase |
+| Deployment | Vercel + Supabase |
 
 ---
 
@@ -102,27 +102,25 @@ cp .env.example .env.local   # then fill in your Supabase project's keys
 npm run dev
 ```
 
-See **`docs/ENV_SETUP.md`** for exactly which environment variables are required vs. optional, and **`docs/DEPLOYMENT_GUIDE.md`** for the full Supabase + Netlify deployment walkthrough.
+See **`docs/ENV_SETUP.md`** for exactly which environment variables are required vs. optional, and **`docs/DEPLOYMENT_GUIDE.md`** for the full Supabase + Vercel deployment walkthrough.
 
 ### Setting up the database
 
-The simplest path is the single consolidated file (`Web3tribe_University_Complete_Database.sql`, distributed separately) — paste it into the Supabase SQL Editor and run it once. It's split into 5 sections, each committing independently, and every statement is idempotent (safe to re-run).
-
-To apply the migrations one at a time instead:
-
 1. Create a new Supabase project.
-2. In the SQL Editor, run in order: `0001_schema.sql` → `0002_storage.sql` → `0003_tokenomics_and_resources.sql` → `0004_discussion_chat.sql`.
-3. Optionally run `supabase/seed/seed.sql` for categories, default reward rules, feature flags, and a sample donation campaign.
-4. Register an instructor account through `/register`, then re-run the sample-course block at the bottom of `seed.sql` if you want a populated example course (see the comment in that file — it explains why this can't be fully automated, since `auth.users` is managed by Supabase Auth, not plain SQL).
-5. Promote your own account to `super_admin` for full access:
+2. In the SQL Editor, run **every file in `supabase/migrations/` in numeric order** (`0001_schema.sql` … `0024_…sql`; there is no `0016`). Each is safe to re-run. Do not skip any — `0022`–`0024` hold the security hardening the app depends on.
+3. Optionally run `supabase/seed/seed.sql` for categories, default reward rules, feature flags and a sample donation campaign.
+4. Register an account through `/register`, then promote it to `super_admin`:
    ```sql
    update public.profiles set role = 'super_admin' where email = 'you@example.com';
    ```
+5. Run the read-only `supabase/security/verify-00*-applied.sql` scripts; every row should say PASS.
 
 ### Running the test suites
 
 ```bash
 npm run test                # unit tests (Vitest) — no external services required
+python3 supabase/tests/security/run_all.py   # replays known attacks against a local throw-away Postgres
+                            # (needs: pip install pgserver "psycopg[binary]", Python 3.12)
 npm run db:test-schema      # validates the full SQL schema against an in-memory Postgres
 npm run db:test-functional  # exercises the reward engine, idempotency, rating triggers
 npm run db:test-rls         # exercises RLS policies with simulated Supabase roles
@@ -138,11 +136,21 @@ The `db:test-*` and `test-migration-*` scripts are a distinctive part of this pr
 
 ---
 
+## Contributing, security and roadmap
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) — how to set up, test and submit changes
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — how we treat each other
+- [SECURITY.md](SECURITY.md) — how to report a vulnerability responsibly
+- [ROADMAP.md](ROADMAP.md) — where the project is going
+- Licence: [MIT](LICENSE)
+
+---
+
 ## Key design decisions
 
 - **No blockchain today, but the seam is real.** `lib/reward-engine.ts` defines a `RewardEngine` interface with one implementation (`LedgerRewardEngine`, backed by Postgres RPC functions). Every place in the app that awards or spends W3TR calls this interface, not Supabase directly. A future `OnChainRewardEngine` could implement the same interface.
 - **Fixed tokenomics, not instructor-configurable.** Reward amounts are defined once in `lib/tokenomics.ts` and enforced at the database level, so the W3TR economy can't be inflated by individual instructors setting arbitrary rewards on their own content.
-- **RLS is the real security boundary**, not just application-layer role checks. Every table has row-level security policies; `lib/rbac.ts` provides ergonomic helpers for the application layer, but the database itself refuses cross-user access even if application code has a bug.
+- **RLS is the real security boundary**, not just application-layer role checks, and it is tested: an automated suite replays known attacks against a local database on every change. Every table has row-level security policies; `lib/rbac.ts` provides ergonomic helpers for the application layer, but the database itself refuses cross-user access even if application code has a bug.
 - **Server Actions + Route Handlers side by side.** Most interactive UI uses Next.js Server Actions for simplicity. A parallel REST API surface exists under `app/api/*` for anything a future mobile app or third-party integration would need.
 - **Certificates are real PDFs, not placeholders.** `lib/certificate.ts` generates an actual landscape A4 PDF with an embedded QR code linking to a public `/verify/[code]` page, uploaded to Supabase Storage.
 - **Chat moderation is automatic and audited.** The 5-dislike auto-delete rule runs as a database trigger (not application code), and every auto-deletion is logged to `audit_logs` with the reason and a snippet of the removed content, so admins retain accountability without manual moderation overhead.

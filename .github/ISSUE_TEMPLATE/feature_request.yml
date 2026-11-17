@@ -1,0 +1,17 @@
+name: Feature or improvement
+description: Suggest something that would help learners, instructors or community centres
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes: { label: What problem does this solve, and for whom? }
+    validations: { required: true }
+  - type: textarea
+    id: idea
+    attributes: { label: What do you suggest? }
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Can you help?
+      options:
+        - label: I'd like to work on this myself

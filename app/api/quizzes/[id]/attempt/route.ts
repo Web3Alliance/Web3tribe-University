@@ -5,6 +5,7 @@ import { getCurrentProfile } from "@/lib/rbac";
 import { getRewardEngine } from "@/lib/reward-engine";
 import { gradeQuizAttempt } from "@/lib/quiz-grading";
 import { TOKENOMICS } from "@/lib/tokenomics";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 interface SubmitQuizBody {
   answers: Record<string, unknown>;
@@ -14,6 +15,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id: quizId } = await params;
   const profile = await getCurrentProfile();
   if (!profile) return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
+
+  const limited = await enforceRateLimit("quiz-attempt", profile.id, 60, 600);
+  if (limited) return limited;
 
   const body = (await request.json()) as SubmitQuizBody;
   const supabase = await createClient();
@@ -59,6 +63,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // answered.
   const admin = createAdminClient();
   const { data: questions } = await admin.from("quiz_questions").select("*").eq("quiz_id", quizId);
+
+  // An empty quiz cannot be "passed": it would hand out rewards, lesson completion and (for a
+  // final exam) a certificate without testing anything. Nothing is recorded in this case.
+  if (!questions || questions.length === 0) {
+    return NextResponse.json(
+      { data: null, error: "This quiz has no questions yet, so it can't be taken. Please tell your instructor." },
+      { status: 422 }
+    );
+  }
 
   const { scorePercent, passed, perQuestionResults } = gradeQuizAttempt(
     questions ?? [],

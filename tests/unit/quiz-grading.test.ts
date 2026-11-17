@@ -127,3 +127,11 @@ describe("gradeQuizAttempt — edge cases", () => {
     expect(result.scorePercent).toBe(50);
   });
 });
+
+describe("gradeQuizAttempt — empty quizzes can never be passed", () => {
+  it("fails a quiz with no questions even when the pass mark is 0%", () => {
+    expect(gradeQuizAttempt([], {}, 70).passed).toBe(false);
+    expect(gradeQuizAttempt([], {}, 0).passed).toBe(false);
+    expect(gradeQuizAttempt([], {}, 0).scorePercent).toBe(0);
+  });
+});

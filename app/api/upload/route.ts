@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/rbac";
+import { checkUpload } from "@/lib/file-signature";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const ALLOWED_BUCKETS = ["course-videos", "course-documents", "course-images", "avatars", "assignments"] as const;
 type AllowedBucket = (typeof ALLOWED_BUCKETS)[number];
@@ -13,17 +15,12 @@ const MAX_SIZE_BYTES: Record<AllowedBucket, number> = {
   assignments: 25 * 1024 * 1024, // 25MB
 };
 
-const ALLOWED_MIME_PREFIXES: Record<AllowedBucket, string[]> = {
-  "course-videos": ["video/", "audio/"],
-  "course-documents": ["application/pdf", "application/vnd.", "text/", "application/zip", "application/x-zip-compressed"],
-  "course-images": ["image/"],
-  avatars: ["image/"],
-  assignments: ["application/pdf", "application/vnd.", "text/", "image/"],
-};
-
 export async function POST(request: Request) {
   const profile = await getCurrentProfile();
   if (!profile) return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
+
+  const limited = await enforceRateLimit("upload", profile.id, 30, 600);
+  if (limited) return limited;
 
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
@@ -42,18 +39,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const allowedPrefixes = ALLOWED_MIME_PREFIXES[bucketName];
-  if (!allowedPrefixes.some((p) => file.type.startsWith(p))) {
-    return NextResponse.json({ data: null, error: `File type "${file.type}" is not allowed for this upload.` }, { status: 400 });
-  }
+  // SECURITY: never trust the browser-declared type. Check the file's real content and store
+  // and serve the detected type, so a script cannot be uploaded dressed up as a PDF or image.
+  const arrayBuffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  const check = checkUpload(bucketName, bytes.slice(0, 4096), file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg") ? new TextDecoder().decode(bytes) : undefined);
+  if (!check.ok) return NextResponse.json({ data: null, error: check.reason }, { status: 400 });
 
   const supabase = await createClient();
-  const ext = file.name.split(".").pop();
-  const filePath = `${profile.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const filePath = `${profile.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${check.ext}`;
 
-  const arrayBuffer = await file.arrayBuffer();
   const { error } = await supabase.storage.from(bucketName).upload(filePath, Buffer.from(arrayBuffer), {
-    contentType: file.type,
+    contentType: check.mime,
     upsert: false,
   });
 

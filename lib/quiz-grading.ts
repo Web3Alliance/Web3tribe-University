@@ -64,7 +64,8 @@ export function gradeQuizAttempt(
   }
 
   const scorePercent = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
-  const passed = scorePercent >= passingScorePercent;
+  // A quiz with no questions proves nothing, so it can never be passed (even with a 0% pass mark).
+  const passed = questions.length > 0 && scorePercent >= passingScorePercent;
 
   return { scorePercent, passed, perQuestionResults };
 }

@@ -1,6 +1,6 @@
 # Environment Variables Reference
 
-Copy `.env.example` to `.env.local` for local development. In production (Netlify), set these under **Site settings → Environment variables**.
+Copy `.env.example` to `.env.local` for local development. In production (Vercel), set these under **Project → Settings → Environment Variables**.
 
 ## Required
 
@@ -38,6 +38,15 @@ Copy `.env.example` to `.env.local` for local development. In production (Netlif
 |---|---|
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Required only if you implement actual browser push delivery. The `notifications` database table and in-app notification center already exist and work without this; this is only for extending delivery to native OS push notifications. Generate with `npx web-push generate-vapid-keys`. |
 | `VAPID_PRIVATE_KEY` | Server-side counterpart to the above. **Secret.** |
+
+## Optional — Rate limiting (recommended in production)
+
+| Variable | Notes |
+|---|---|
+| `UPSTASH_REDIS_REST_URL` | REST URL of a free [Upstash Redis](https://upstash.com) database. With both Upstash variables set, rate limits on uploads, quiz attempts, certificate generation and document downloads are shared across all serverless instances. |
+| `UPSTASH_REDIS_REST_TOKEN` | **Secret.** Token for the database above. |
+
+Without them the app still rate-limits, but each serverless instance counts separately, so the limit is only best-effort. Sign-in attempts are limited by Supabase Auth itself (Dashboard → Authentication → Rate Limits).
 
 ## What happens if optional variables are missing?
 

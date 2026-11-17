@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/rbac";
 import { generateCertificatePdf } from "@/lib/certificate";
 import { MIN_FINAL_EXAM_QUESTIONS } from "@/lib/tokenomics";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 interface GenerateCertBody {
   courseId: string;
@@ -12,6 +13,9 @@ interface GenerateCertBody {
 export async function POST(request: Request) {
   const profile = await getCurrentProfile();
   if (!profile) return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 });
+
+  const limited = await enforceRateLimit("certificate", profile.id, 10, 600);
+  if (limited) return limited;
 
   const { courseId } = (await request.json()) as GenerateCertBody;
   const supabase = await createClient();

@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide walks through deploying Web3tribe University to **Supabase** (database, auth, storage) and **Netlify** (application hosting), from an empty Supabase project to a live site.
+This guide walks through deploying Web3tribe University to **Supabase** (database, auth, storage) and **Vercel** (application hosting), from an empty Supabase project to a live site.
 
 ## 1. Create your Supabase project
 
@@ -13,12 +13,13 @@ This guide walks through deploying Web3tribe University to **Supabase** (databas
 
 ## 2. Apply the database schema
 
-1. Open the **SQL Editor** in your Supabase project.
-2. Paste the entire contents of `supabase/migrations/0001_schema.sql` and run it. This creates every table, enum, function, trigger, and Row Level Security policy the application needs. It is idempotent — safe to re-run if you need to.
-3. Paste and run `supabase/migrations/0002_storage.sql`. This creates the six storage buckets the app uses (`course-videos`, `course-documents`, `course-images`, `avatars`, `assignments`, `certificates`) and their access policies.
-4. Optionally paste and run `supabase/seed/seed.sql` for starter categories, default reward rules, feature flags, and a sample donation campaign.
+Open the **SQL Editor** in your Supabase project and run **every file in `supabase/migrations/` in numeric order**, from `0001_schema.sql` to the latest (currently `0024_authoring_rewards_certificates_documents.sql`; there is no `0016`). Each file is written to be safe to re-run. Never skip one: later files (0022–0024) contain the security hardening the application relies on.
 
-You can validate any of these files locally before running them against your real project — see the `db:test-*` npm scripts in the README, which run the exact same SQL against an in-memory Postgres engine and report success/failure.
+Then optionally run `supabase/seed/seed.sql` for starter categories, default reward rules, feature flags and a sample donation campaign.
+
+After applying, run the read-only check scripts in `supabase/security/` (`verify-0022-applied.sql`, `verify-0023-applied.sql`, `verify-0024-applied.sql`); every row should say PASS.
+
+You can validate the database rules locally, without touching your real project, with `python3 supabase/tests/security/run_all.py` (see `supabase/tests/security/README.md`).
 
 ## 3. Configure authentication
 
@@ -49,28 +50,18 @@ update public.profiles set role = 'super_admin' where email = 'you@example.com';
 
 ## 5. Configure environment variables
 
-Copy `.env.example` to `.env.local` for local development. See `docs/ENV_SETUP.md` for the full variable reference.
+Copy `.env.example` to `.env.local` for local development; in production set them in Vercel (step 6). See `docs/ENV_SETUP.md` for the full variable reference.
 
-## 6. Deploy to Netlify
+## 6. Deploy to Vercel
 
-### Option A: Netlify UI
-1. Push this repository to GitHub/GitLab/Bitbucket.
-2. In Netlify, click **Add new site → Import an existing project**, and connect your repository.
-3. Netlify will detect `netlify.toml` automatically. Build command and publish directory are already configured.
-4. Under **Site settings → Environment variables**, add every variable from `.env.example` that you have a real value for (at minimum: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_URL` set to your Netlify URL).
-5. Trigger a deploy.
+1. Push the repository to GitHub.
+2. In [Vercel](https://vercel.com), choose **Add New → Project** and import the repository. The framework (Next.js) is detected automatically; the defaults for build command and output are correct.
+3. Under **Settings → Environment Variables**, add every variable from `.env.example` that you have a real value for (at minimum `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_URL` set to your production URL).
+4. Deploy. Every push to `main` deploys automatically; pull requests get preview URLs.
 
-### Option B: Netlify CLI
-```bash
-npm install -g netlify-cli
-netlify login
-netlify init
-netlify env:set NEXT_PUBLIC_SUPABASE_URL "https://your-project-ref.supabase.co"
-netlify env:set NEXT_PUBLIC_SUPABASE_ANON_KEY "your-anon-key"
-netlify env:set SUPABASE_SERVICE_ROLE_KEY "your-service-role-key"
-netlify env:set NEXT_PUBLIC_SITE_URL "https://your-site.netlify.app"
-netlify deploy --prod
-```
+**Deploy order when a change includes a database migration:** deploy the application code first, wait for it to be live, *then* run the migration in Supabase.
+
+Security headers are set in `next.config.ts` (the Content-Security-Policy starts in report-only mode; see the comment there before enforcing it).
 
 ## 7. Configure Paystack donations (optional)
 
@@ -78,7 +69,7 @@ netlify deploy --prod
 2. Set `PAYSTACK_SECRET_KEY` and `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` in your environment.
 3. In the Paystack Dashboard, under **Settings → API Keys & Webhooks**, set your webhook URL to:
    ```
-   https://your-site.netlify.app/api/donations/paystack/webhook
+   https://your-domain.example/api/donations/paystack/webhook
    ```
 4. Donations made through the app will initialize a Paystack transaction; the webhook confirms payment and updates the donation record and campaign totals automatically.
 
@@ -86,9 +77,9 @@ netlify deploy --prod
 
 Once you know your production domain, update in Supabase:
 - **Authentication → URL Configuration → Site URL**: your production URL.
-- **Authentication → URL Configuration → Redirect URLs**: add `https://your-site.netlify.app/api/auth/callback` and `https://your-site.netlify.app/reset-password`.
+- **Authentication → URL Configuration → Redirect URLs**: add `https://your-domain.example/api/auth/callback` and `https://your-domain.example/reset-password`.
 
-And update `NEXT_PUBLIC_SITE_URL` in Netlify to match.
+And update `NEXT_PUBLIC_SITE_URL` in Vercel to match.
 
 ## 9. Post-deployment checklist
 
@@ -103,7 +94,7 @@ And update `NEXT_PUBLIC_SITE_URL` in Netlify to match.
 
 ## Troubleshooting
 
-**Build fails on Netlify with a Supabase-related error at build time.** Ensure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set in Netlify's environment variables — even placeholder values will let the build itself succeed, since these clients only fail at request time if unset, but Next.js's static-generation pass for a handful of pages can be sensitive to this.
+**Build fails on Vercel with a Supabase-related error at build time.** Ensure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set in Vercel's environment variables — even placeholder values will let the build itself succeed, since these clients only fail at request time if unset, but Next.js's static-generation pass for a handful of pages can be sensitive to this.
 
 **RLS errors ("new row violates row-level security policy").** This almost always means either (a) you're trying to insert/update a row with a `profile_id` that doesn't match the currently authenticated user, or (b) the acting user's role doesn't meet the policy's requirement. Check `lib/rbac.ts` and the relevant policy in `0001_schema.sql` Section 15.
 

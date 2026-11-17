@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/rbac";
 import { courseDocumentPath } from "@/lib/document-links";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const BUCKET = "course-documents";
 const SIGNED_URL_SECONDS = 60;
@@ -14,6 +15,9 @@ const SIGNED_URL_SECONDS = 60;
 export async function GET(request: Request) {
   const profile = await getCurrentProfile();
   if (!profile) return NextResponse.json({ data: null, error: "Please sign in." }, { status: 401 });
+
+  const limited = await enforceRateLimit("document", profile.id, 120, 600);
+  if (limited) return limited;
 
   const path = courseDocumentPath(
     // accept the bare object path, wrapped so the shared validator checks it
