@@ -15,7 +15,7 @@ export default async function AdminDashboardPage() {
     { count: donationCount },
     { data: donationSum },
   ] = await Promise.all([
-    supabase.from("profiles").select("*", { count: "exact", head: true }),
+    supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase.from("courses").select("*", { count: "exact", head: true }).eq("status", "published"),
     supabase.from("courses").select("*", { count: "exact", head: true }).eq("status", "pending_review"),
     supabase.from("donations").select("*", { count: "exact", head: true }).eq("status", "confirmed"),

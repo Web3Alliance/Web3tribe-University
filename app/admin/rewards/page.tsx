@@ -12,7 +12,7 @@ export default async function AdminRewardsPage() {
 
   const { data: recentTransactions } = await supabase
     .from("w3tr_transactions")
-    .select("*, profile:profiles(full_name,email)")
+    .select("*, profile:profiles(full_name)")
     .order("created_at", { ascending: false })
     .limit(30);
 

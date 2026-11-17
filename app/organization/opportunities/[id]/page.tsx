@@ -1,3 +1,4 @@
+import { withContacts } from "@/lib/profile-contacts";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/rbac";
@@ -30,16 +31,18 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
   const requiredCourseIds: string[] = opportunity.required_course_ids ?? [];
 
-  const [{ data: requiredCourses }, { data: applications }] = await Promise.all([
+  const [{ data: requiredCourses }, { data: applicationsRaw }] = await Promise.all([
     requiredCourseIds.length
       ? supabase.from("courses").select("id, title").in("id", requiredCourseIds)
       : Promise.resolve({ data: [] as { id: string; title: string }[] }),
     supabase
       .from("opportunity_applications")
-      .select("*, profile:profiles(full_name, email, phone, avatar_url, state_region, country, bio)")
+      .select("*, profile:profiles(full_name, avatar_url, bio)")
       .eq("opportunity_id", opportunityId)
       .order("created_at", { ascending: false }),
   ]);
+
+  const applications = await withContacts(supabase, applicationsRaw, "profile", (a) => a.student_id);
 
   // For every applicant in one pass: which REQUIRED courses they completed
   // (and when), plus their biodata — both readable by this org thanks to the

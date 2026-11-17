@@ -1,3 +1,4 @@
+import { withContacts } from "@/lib/profile-contacts";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,11 +10,13 @@ export const metadata = { title: "Course Moderation" };
 export default async function AdminCoursesPage() {
   const supabase = await createClient();
 
-  const { data: pendingCourses } = await supabase
+  const { data: pendingCoursesRaw } = await supabase
     .from("courses")
-    .select("*, instructor:profiles!courses_instructor_id_fkey(full_name,email)")
+    .select("*, instructor:profiles!courses_instructor_id_fkey(full_name)")
     .eq("status", "pending_review")
     .order("submitted_for_review_at", { ascending: true });
+
+  const pendingCourses = await withContacts(supabase, pendingCoursesRaw, "instructor", (c) => c.instructor_id);
 
   const { data: allCoursesRaw } = await supabase
     .from("courses")

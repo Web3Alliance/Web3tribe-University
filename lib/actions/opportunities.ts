@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/rbac";
 import { notifyUser } from "@/lib/notify";
 import { sendEmail, emailLayout } from "@/lib/email";
@@ -160,7 +161,7 @@ export async function expressInterestAction(opportunityId: string) {
       body: `${applicantName} expressed interest in "${opportunity.title}". Review their profile to decide whether to shortlist them.`,
       linkUrl: `/organization/opportunities/${opportunityId}`,
     });
-    const { data: ownerProfile } = await supabase.from("profiles").select("email").eq("id", org.owner_profile_id).single();
+    const { data: ownerProfile } = await createAdminClient().from("profiles").select("email").eq("id", org.owner_profile_id).single();
     if (ownerProfile?.email) {
       await sendEmail({
         to: ownerProfile.email,
@@ -228,7 +229,7 @@ export async function shortlistApplicantAction(applicationId: string, organizati
     linkUrl: "/student/opportunities",
   });
 
-  const { data: studentProfile } = await supabase.from("profiles").select("email, full_name").eq("id", application.student_id).single();
+  const { data: studentProfile } = await createAdminClient().from("profiles").select("email, full_name").eq("id", application.student_id).single();
   if (studentProfile?.email) {
     await sendEmail({
       to: studentProfile.email,
@@ -304,7 +305,7 @@ export async function respondToShortlistAction(applicationId: string, response: 
       linkUrl: `/organization/opportunities/${opp.id}`,
     });
 
-    const { data: ownerProfile } = await supabase.from("profiles").select("email").eq("id", org.owner_profile_id).single();
+    const { data: ownerProfile } = await createAdminClient().from("profiles").select("email").eq("id", org.owner_profile_id).single();
     if (ownerProfile?.email) {
       await sendEmail({
         to: ownerProfile.email,

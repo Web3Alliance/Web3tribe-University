@@ -1,3 +1,4 @@
+import { withContacts } from "@/lib/profile-contacts";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/rbac";
@@ -27,11 +28,13 @@ export default async function InstructorCohortDetailPage({ params }: { params: P
     : (courseField as { title: string; slug: string; delivery_mode: string } | null);
   const isOnline = course?.delivery_mode === "online";
 
-  const { data: enrollments } = await supabase
+  const { data: enrollmentsRaw } = await supabase
     .from("enrollments")
-    .select("*, student:profiles(full_name, email, state_region, lga)")
+    .select("*, student:profiles(full_name)")
     .eq("cohort_id", cohortId)
     .order("enrolled_at", { ascending: false });
+  // Email/location are private; the database releases them only for this instructor's own cohort students.
+  const enrollments = await withContacts(supabase, enrollmentsRaw, "student", (e) => e.student_id);
 
   const hasStarted = new Date(cohort.start_date) < new Date(new Date().toDateString());
 

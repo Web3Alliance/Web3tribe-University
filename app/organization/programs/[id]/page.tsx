@@ -1,3 +1,4 @@
+import { withContacts } from "@/lib/profile-contacts";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/rbac";
@@ -24,21 +25,24 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
 
   const courseIds: string[] = program.course_ids ?? [];
 
-  const [{ data: courses }, { data: assignments }, { data: allMembers }] = await Promise.all([
+  const [{ data: courses }, { data: assignmentsRaw }, { data: allMembersRaw }] = await Promise.all([
     courseIds.length
       ? supabase.from("courses").select("id, title, slug, thumbnail_url, enrollment_count").in("id", courseIds)
       : Promise.resolve({ data: [] as { id: string; title: string; slug: string; thumbnail_url: string | null; enrollment_count: number }[] }),
     supabase
       .from("organization_program_assignments")
-      .select("*, profile:profiles(id, full_name, email)")
+      .select("*, profile:profiles(id, full_name)")
       .eq("program_id", programId)
       .order("assigned_at", { ascending: false }),
     supabase
       .from("organization_members")
-      .select("*, profile:profiles(id, full_name, email)")
+      .select("*, profile:profiles(id, full_name)")
       .eq("organization_id", org.id)
       .eq("status", "active"),
   ]);
+
+  const assignments = await withContacts(supabase, assignmentsRaw, "profile", (a) => a.profile_id);
+  const allMembers = await withContacts(supabase, allMembersRaw, "profile", (m) => m.profile_id);
 
   // Refresh completion status for every currently-assigned learner whenever
   // this page is viewed, so an org manager always sees accurate progress
@@ -47,12 +51,13 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
   await Promise.all(
     [...assignedProfileIds].map((pid) => checkAndMarkProgramCompletionAction(programId, pid))
   );
-  const { data: freshAssignments } = await supabase
+  const { data: freshAssignmentsRaw } = await supabase
     .from("organization_program_assignments")
-    .select("*, profile:profiles(id, full_name, email)")
+    .select("*, profile:profiles(id, full_name)")
     .eq("program_id", programId)
     .order("assigned_at", { ascending: false });
 
+  const freshAssignments = await withContacts(supabase, freshAssignmentsRaw, "profile", (a) => a.profile_id);
   const assignedIds = new Set((freshAssignments ?? []).map((a) => a.profile_id));
   const unassignedMembers = (allMembers ?? []).filter((m) => m.profile_id && !assignedIds.has(m.profile_id));
 

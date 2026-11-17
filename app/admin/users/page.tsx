@@ -15,9 +15,8 @@ export default async function AdminUsersPage({
   const { q } = await searchParams;
   const supabase = await createClient();
 
-  let query = supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(100);
-  if (q) query = query.ilike("full_name", `%${q}%`);
-  const { data: users } = await query;
+  // Full user rows (email, phone, status) come only from the admin-gated staff_profiles() function.
+  const { data: users } = await supabase.rpc("staff_profiles", { p_query: q ?? null, p_limit: 100 });
 
   return (
     <div className="space-y-6">

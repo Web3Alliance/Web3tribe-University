@@ -10,11 +10,11 @@ export async function GET(request: Request) {
   const q = searchParams.get("q") ?? "";
 
   const supabase = await createClient();
-  let query = supabase.from("profiles").select("id,full_name,email,role,is_banned").limit(10);
-  if (q) query = query.or(`email.ilike.%${q}%,full_name.ilike.%${q}%`);
-
-  const { data, error } = await query;
+  const { data: rows, error } = await supabase.rpc("staff_profiles", { p_query: q || null, p_limit: 10 });
   if (error) return NextResponse.json({ data: null, error: error.message }, { status: 500 });
 
+  const data = ((rows ?? []) as Array<{ id: string; full_name: string | null; email: string; role: string; is_banned: boolean }>).map(
+    (u) => ({ id: u.id, full_name: u.full_name, email: u.email, role: u.role, is_banned: u.is_banned })
+  );
   return NextResponse.json({ data, error: null });
 }

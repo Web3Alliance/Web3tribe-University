@@ -11,7 +11,7 @@ export default async function AdminAuditLogsPage() {
 
   const { data: logs } = await supabase
     .from("audit_logs")
-    .select("*, actor:profiles(full_name,email)")
+    .select("*, actor:profiles(full_name)")
     .order("created_at", { ascending: false })
     .limit(100);
 

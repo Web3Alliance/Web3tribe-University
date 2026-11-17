@@ -2,6 +2,7 @@ import { getCurrentProfile } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
 import { AvatarUploadCard } from "@/components/settings/avatar-upload-card";
 import { ProfileSettingsForm, ChangePasswordForm } from "@/components/settings/profile-settings-form";
+import { DataRightsCard } from "@/components/settings/data-rights-card";
 import { ThemePreferenceCard } from "@/components/settings/theme-preference-card";
 import { OpportunityVisibilityCard } from "@/components/settings/opportunity-visibility-card";
 import { BiodataForm, type ExistingBiodata } from "@/components/settings/biodata-form";
@@ -53,6 +54,7 @@ export default async function SettingsPage() {
       )}
       <ThemePreferenceCard />
       <ChangePasswordForm />
+      <DataRightsCard />
     </div>
   );
 }

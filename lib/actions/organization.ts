@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/rbac";
 import { slugify } from "@/lib/utils";
 import { notifyUser } from "@/lib/notify";
@@ -41,7 +42,7 @@ export async function inviteLearnerAction(organizationId: string, email: string)
   const { ok, supabase } = await assertOwnsOrgOrAdmin(organizationId);
   if (!ok || !supabase) return { error: "Not authorized." };
 
-  const { data: existingProfile } = await supabase.from("profiles").select("id, full_name").eq("email", email).maybeSingle();
+  const { data: existingProfile } = await createAdminClient().from("profiles").select("id, full_name").eq("email", email).maybeSingle();
 
   // Guard against inviting the same person twice — the unique constraint on
   // (organization_id, profile_id) only protects already-registered users;

@@ -1,0 +1,25 @@
+-- Run in the Supabase SQL editor AFTER 0025. Every row should say PASS.
+select check_name, case when ok then 'PASS' else 'FAIL' end as result from (values
+  ('signed-in users cannot read profiles.email',
+     not has_column_privilege('authenticated', 'public.profiles', 'email', 'select')),
+  ('signed-in users cannot read profiles.phone',
+     not has_column_privilege('authenticated', 'public.profiles', 'phone', 'select')),
+  ('signed-in users cannot read profiles.is_banned',
+     not has_column_privilege('authenticated', 'public.profiles', 'is_banned', 'select')),
+  ('signed-in users cannot read profiles.lga',
+     not has_column_privilege('authenticated', 'public.profiles', 'lga', 'select')),
+  ('signed-in users CAN read full_name',
+     has_column_privilege('authenticated', 'public.profiles', 'full_name', 'select')),
+  ('signed-in users CAN read role (page access)',
+     has_column_privilege('authenticated', 'public.profiles', 'role', 'select')),
+  ('anonymous cannot read email',
+     not has_column_privilege('anon', 'public.profiles', 'email', 'select')),
+  ('my_profile() exists and is not callable by anon',
+     to_regprocedure('public.my_profile()') is not null and not has_function_privilege('anon', 'public.my_profile()', 'execute')),
+  ('profile_contacts() not callable by anon',
+     to_regprocedure('public.profile_contacts(uuid[])') is not null and not has_function_privilege('anon', 'public.profile_contacts(uuid[])', 'execute')),
+  ('staff_profiles() not callable by anon',
+     to_regprocedure('public.staff_profiles(text,integer)') is not null and not has_function_privilege('anon', 'public.staff_profiles(text,integer)', 'execute')),
+  ('internal helper not callable by signed-in users',
+     not has_function_privilege('authenticated', 'public.can_view_private_profile(uuid)', 'execute'))
+) as t(check_name, ok);

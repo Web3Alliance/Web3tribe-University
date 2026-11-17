@@ -1,3 +1,4 @@
+import { withContacts } from "@/lib/profile-contacts";
 import { getCurrentProfile } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,11 +19,13 @@ export default async function OrganizationLearnersPage() {
     return <p className="text-muted-foreground">Create your organization first from the Programs page.</p>;
   }
 
-  const { data: members } = await supabase
+  const { data: membersRaw } = await supabase
     .from("organization_members")
-    .select("*, profile:profiles(full_name,email)")
+    .select("*, profile:profiles(full_name)")
     .eq("organization_id", org.id)
     .order("joined_at", { ascending: false });
+
+  const members = await withContacts(supabase, membersRaw, "profile", (m) => m.profile_id);
 
   async function handleInvite(formData: FormData) {
     "use server";

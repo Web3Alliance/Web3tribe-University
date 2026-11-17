@@ -31,7 +31,8 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+  // Own full profile via the database function: other columns of profiles are private (migration 0025).
+  const { data } = await supabase.rpc("my_profile").maybeSingle();
   return (data as Profile) ?? null;
 });
 

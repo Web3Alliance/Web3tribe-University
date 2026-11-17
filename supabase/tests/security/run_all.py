@@ -25,8 +25,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pgserver
 import pgh, suite
 
-LATEST = "0024"
-RERUN = ["0022_security_hardening.sql", "0023_enforce_review_on_edit.sql", "0024_authoring_rewards_certificates_documents.sql"]   # run twice on the final database
+LATEST = "0025"
+RERUN = ["0022_security_hardening.sql", "0023_enforce_review_on_edit.sql", "0024_authoring_rewards_certificates_documents.sql", "0025_profile_privacy.sql"]   # run twice on the final database
 
 
 def main():

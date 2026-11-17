@@ -1,3 +1,4 @@
+import { withContacts } from "@/lib/profile-contacts";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -37,11 +38,12 @@ export default async function CourseStudentsPage({ params }: { params: Promise<{
     redirect("/instructor/courses");
   }
 
-  const { data: enrollments } = await supabase
+  const { data: enrollmentsRaw } = await supabase
     .from("enrollments")
-    .select("*, student:profiles(id, full_name, username, email, avatar_url, bio, state_region, country)")
+    .select("*, student:profiles(id, full_name, username, avatar_url, bio)")
     .eq("course_id", courseId)
     .order("enrolled_at", { ascending: false });
+  const enrollments = await withContacts(supabase, enrollmentsRaw, "student", (e) => e.student_id);
 
   const active = (enrollments ?? []).filter((e) => e.status === "active").length;
   const completed = (enrollments ?? []).filter((e) => e.status === "completed").length;

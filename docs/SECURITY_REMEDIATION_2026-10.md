@@ -94,3 +94,11 @@ Enrolled students keep access while a course is in review (migration 0017); it l
 **Rolling back (only if something unexpected happens):** the rule can be switched off without touching data —
 `drop trigger if exists trg_courses_review_on_edit on public.courses;` and `drop trigger if exists trg_review_on_edit on public.<table>;` for course_sections, lessons, lesson_resources, course_resources, quizzes, quiz_questions, assignments. The in-app helper keeps working on its own.
 
+
+## Profile privacy and data rights (migration 0025)
+
+- Signed-in users can read only public profile columns of other people (name, username, avatar, bio, role badge, verified-instructor badge, join date). Email, phone, location, ban/active status and settings are private.
+- Private details are reached only through `my_profile()`, `profile_contacts(ids)` and `staff_profiles(search, limit)`. `profile_contacts` returns details only for the caller themselves, staff, an instructor's own enrolled learners, and an organization owner's own members, programme learners and applicants.
+- App code uses `lib/profile-contacts.ts` for this. Deploy the app first, then run `0025_profile_privacy.sql`, then `supabase/verify-0025-applied.sql`.
+- Data rights: Settings now offers a personal-data download (`/api/account/export`) and self-service account deletion (blocked while the user owns courses or an organization, and for admins).
+- Tested by `supabase/tests/security` (group H: 17 attacks, 13 legitimate-use checks).
