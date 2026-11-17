@@ -9,30 +9,58 @@ import { resolveVideoEmbed } from "@/lib/media-embed";
 import type { Lesson } from "@/lib/types";
 import { documentHref } from "@/lib/document-links";
 
+function DirectVideo({ src }: { src: string }) {
+  const [failed, setFailed] = React.useState(false);
+  if (failed) {
+    return (
+      <div className="flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-xl bg-black/90 p-4 text-center text-white">
+        <PlayCircle className="h-12 w-12 opacity-70" />
+        <p className="text-sm">This video couldn&apos;t be played in your browser.</p>
+        <a href={src} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sm underline">
+          <ExternalLink className="h-4 w-4" /> Open or download the video
+        </a>
+      </div>
+    );
+  }
+  return (
+    <video
+      src={src}
+      controls
+      playsInline
+      preload="metadata"
+      onError={() => setFailed(true)}
+      className="aspect-video w-full rounded-xl bg-black"
+    />
+  );
+}
+
 function LessonMedia({ lesson }: { lesson: Lesson }) {
   if (lesson.content_type === "video" || lesson.content_type === "embed") {
     const { type, embedUrl } = resolveVideoEmbed(lesson.content_url);
 
     if (type === "direct" && embedUrl) {
-      return (
-        <video
-          key={embedUrl}
-          src={embedUrl}
-          controls
-          className="aspect-video w-full rounded-xl bg-black"
-        />
-      );
+      return <DirectVideo key={embedUrl} src={embedUrl} />;
     }
 
     if ((type === "google-drive" || type === "youtube" || type === "vimeo") && embedUrl) {
       return (
-        <iframe
-          key={embedUrl}
-          src={embedUrl}
-          className="aspect-video w-full rounded-xl border-0 bg-black"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
+        <div className="space-y-2">
+          <iframe
+            key={embedUrl}
+            src={embedUrl}
+            className="aspect-video w-full rounded-xl border-0 bg-black"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+          {/* An embedded player can't tell us when it fails, so a way out is always one click away. */}
+          <p className="text-xs text-muted-foreground">
+            Video not playing?{" "}
+            <a href={lesson.content_url ?? embedUrl} target="_blank" rel="noreferrer" className="text-primary underline">
+              Open it in a new tab
+            </a>
+            {type === "google-drive" && " (Google Drive can pause playback of busy or still-processing files — try again in a few minutes)."}
+          </p>
+        </div>
       );
     }
 
